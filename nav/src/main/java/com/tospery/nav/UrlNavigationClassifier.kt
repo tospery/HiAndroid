@@ -65,7 +65,7 @@ class UrlNavigationClassifier(
             )
 
         val host = parsedUri.host?.lowercase()
-        val path = parsedUri.path.orEmpty().trimStart('/')
+        val path = parsedUri.rawPath.orEmpty().trimStart('/')
         val query = parsedUri.rawQuery
 
         return when {

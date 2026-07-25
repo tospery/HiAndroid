@@ -126,6 +126,72 @@ class NavRouteTableTest {
     }
 
     @Test
+    fun catchAllParameterExtractsDecodedTrailingPathSegments() {
+        val definition =
+            NavRouteDefinition(
+                id = NavRouteId("repository-file"),
+                path = "{owner}/{repo}/blob/{ref}/{*path}",
+            )
+        val table = NavRouteTable(listOf(definition))
+
+        val match =
+            requireNotNull(
+                table.match(
+                    "devxoul/ReactorKit/blob/main/src/main%20code/App.kt",
+                ),
+            )
+
+        assertEquals(definition, match.definition)
+        assertEquals(
+            mapOf(
+                "owner" to "devxoul",
+                "repo" to "ReactorKit",
+                "ref" to "main",
+                "path" to "src/main code/App.kt",
+            ),
+            match.pathParameters,
+        )
+    }
+
+    @Test
+    fun catchAllParameterRequiresAtLeastOneSafeTrailingSegment() {
+        val table =
+            NavRouteTable(
+                definitions =
+                    listOf(
+                        NavRouteDefinition(
+                            id = NavRouteId("repository-file"),
+                            path = "{owner}/{repo}/blob/{ref}/{*path}",
+                        ),
+                    ),
+            )
+
+        assertNull(table.match("devxoul/ReactorKit/blob/main"))
+        assertNull(table.match("devxoul/ReactorKit/blob/main/src/%2E%2E/App.kt"))
+        assertNull(table.match("devxoul/ReactorKit/blob/main/src%2Fmain/App.kt"))
+    }
+
+    @Test
+    fun exactRouteWinsBeforeOverlappingCatchAllFallback() {
+        val exact =
+            NavRouteDefinition(
+                id = NavRouteId("repository-file-root"),
+                path = "{owner}/{repo}/blob/{ref}/README.md",
+            )
+        val catchAll =
+            NavRouteDefinition(
+                id = NavRouteId("repository-file"),
+                path = "{owner}/{repo}/blob/{ref}/{*path}",
+            )
+        val table = NavRouteTable(listOf(catchAll, exact))
+
+        assertEquals(
+            exact,
+            table.match("devxoul/ReactorKit/blob/main/README.md")?.definition,
+        )
+    }
+
+    @Test
     fun percentEncodedUtf8SegmentIsDecodedBeforeParameterExtraction() {
         val table = repositoryRouteTable()
 
@@ -323,6 +389,19 @@ class NavRouteTableTest {
                     NavRouteDefinition(
                         id = NavRouteId("invalid"),
                         path = "{owner",
+                    ),
+                ),
+        )
+    }
+
+    @Test(expected = IllegalArgumentException::class)
+    fun catchAllParameterBeforeFinalSegmentIsRejected() {
+        NavRouteTable(
+            definitions =
+                listOf(
+                    NavRouteDefinition(
+                        id = NavRouteId("invalid"),
+                        path = "{owner}/{*path}/edit",
                     ),
                 ),
         )

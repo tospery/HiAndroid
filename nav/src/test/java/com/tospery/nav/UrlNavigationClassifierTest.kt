@@ -71,6 +71,23 @@ class UrlNavigationClassifierTest {
     }
 
     @Test
+    fun appLinkPreservesEncodedPathSeparatorsForRouteValidation() {
+        val target = classifier.classify("https://higit.com/owner/repo/blob/main/src%2Fmain/App.kt")
+
+        assertEquals(
+            UrlNavigationTarget.InternalRoute(
+                route = NavRoute("owner/repo/blob/main/src%2Fmain/App.kt"),
+                origin =
+                    InternalRouteOrigin.TrustedWebHost(
+                        scheme = UrlScheme("https"),
+                        host = UrlHost("higit.com"),
+                    ),
+            ),
+            target,
+        )
+    }
+
+    @Test
     fun relativeRoutePreservesRelativeOrigin() {
         val target = classifier.classify("home?tab=3")
 

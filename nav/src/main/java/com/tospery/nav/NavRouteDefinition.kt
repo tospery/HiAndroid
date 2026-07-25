@@ -49,6 +49,8 @@ class NavRouteTable(
             compiledRoutes.sortedWith(
                 compareByDescending<RegisteredNavRoute> {
                     it.pattern.literalSegmentCount
+                }.thenBy {
+                    it.pattern.hasCatchAllParameter
                 }.thenByDescending {
                     it.pattern.segments.size
                 },
@@ -103,30 +105,41 @@ private data class RegisteredNavRoute(
 private data class CompiledNavRoutePattern(
     val segments: List<NavRoutePatternSegment>,
 ) {
+    val hasCatchAllParameter: Boolean =
+        segments.lastOrNull() is NavRoutePatternSegment.CatchAllParameter
+
     val literalSegmentCount: Int =
         segments.count { segment ->
             segment is NavRoutePatternSegment.Literal
         }
 
     fun match(pathSegments: List<String>): Map<String, String>? {
-        if (segments.size != pathSegments.size) {
+        if (
+            (!hasCatchAllParameter && segments.size != pathSegments.size) ||
+            (hasCatchAllParameter && pathSegments.size < segments.size)
+        ) {
             return null
         }
 
         val pathParameters = linkedMapOf<String, String>()
 
         segments.forEachIndexed { index, patternSegment ->
-            val pathSegment = pathSegments[index]
-
             when (patternSegment) {
                 is NavRoutePatternSegment.Literal -> {
-                    if (patternSegment.value != pathSegment) {
+                    if (patternSegment.value != pathSegments[index]) {
                         return null
                     }
                 }
 
                 is NavRoutePatternSegment.Parameter -> {
-                    pathParameters[patternSegment.name] = pathSegment
+                    pathParameters[patternSegment.name] = pathSegments[index]
+                }
+
+                is NavRoutePatternSegment.CatchAllParameter -> {
+                    pathParameters[patternSegment.name] =
+                        pathSegments
+                            .subList(index, pathSegments.size)
+                            .joinToString("/")
                 }
             }
         }
@@ -135,14 +148,37 @@ private data class CompiledNavRoutePattern(
     }
 
     fun overlaps(other: CompiledNavRoutePattern): Boolean {
-        if (segments.size != other.segments.size) {
+        val candidateSegmentCount =
+            when {
+                hasCatchAllParameter && other.hasCatchAllParameter ->
+                    maxOf(segments.size, other.segments.size)
+
+                hasCatchAllParameter -> other.segments.size
+                other.hasCatchAllParameter -> segments.size
+                segments.size == other.segments.size -> segments.size
+                else -> return false
+            }
+        if (
+            candidateSegmentCount < segments.size ||
+            candidateSegmentCount < other.segments.size
+        ) {
             return false
         }
 
-        return segments.zip(other.segments).all { (left, right) ->
+        return (0 until candidateSegmentCount).all { index ->
+            val left = segmentAt(index)
+            val right = other.segmentAt(index)
             left !is NavRoutePatternSegment.Literal ||
                 right !is NavRoutePatternSegment.Literal ||
                 left.value == right.value
+        }
+    }
+
+    private fun segmentAt(index: Int): NavRoutePatternSegment {
+        return if (index < segments.lastIndex || !hasCatchAllParameter) {
+            segments[index]
+        } else {
+            requireNotNull(segments.lastOrNull())
         }
     }
 }
@@ -155,6 +191,14 @@ private sealed interface NavRoutePatternSegment {
     data class Parameter(
         val name: String,
     ) : NavRoutePatternSegment
+
+    /**
+     * Captures one or more decoded path segments. Catch-all parameters are only valid as the
+     * final pattern segment, so matching cannot change the hierarchy of an earlier segment.
+     */
+    data class CatchAllParameter(
+        val name: String,
+    ) : NavRoutePatternSegment
 }
 
 private fun compileNavRoutePattern(path: String): CompiledNavRoutePattern {
@@ -165,11 +209,18 @@ private fun compileNavRoutePattern(path: String): CompiledNavRoutePattern {
     val patternSegments =
         pathSegments.map { segment ->
             val parameterMatch = RouteParameterPattern.matchEntire(segment)
+            val catchAllParameterMatch = CatchAllRouteParameterPattern.matchEntire(segment)
 
             when {
                 parameterMatch != null -> {
                     NavRoutePatternSegment.Parameter(
                         name = parameterMatch.groupValues[1],
+                    )
+                }
+
+                catchAllParameterMatch != null -> {
+                    NavRoutePatternSegment.CatchAllParameter(
+                        name = catchAllParameterMatch.groupValues[1],
                     )
                 }
 
@@ -187,9 +238,23 @@ private fun compileNavRoutePattern(path: String): CompiledNavRoutePattern {
                 }
             }
         }
+    val catchAllParameterIndex =
+        patternSegments.indexOfFirst { segment ->
+            segment is NavRoutePatternSegment.CatchAllParameter
+        }
+    require(
+        catchAllParameterIndex == -1 ||
+            catchAllParameterIndex == patternSegments.lastIndex,
+    ) {
+        "Nav route catch-all parameter must be the final segment: $path"
+    }
     val parameterNames =
         patternSegments.mapNotNull { segment ->
-            (segment as? NavRoutePatternSegment.Parameter)?.name
+            when (segment) {
+                is NavRoutePatternSegment.Parameter -> segment.name
+                is NavRoutePatternSegment.CatchAllParameter -> segment.name
+                is NavRoutePatternSegment.Literal -> null
+            }
         }
 
     require(parameterNames.distinct().size == parameterNames.size) {
@@ -206,7 +271,9 @@ private fun validateNoAmbiguousPatterns(routes: List<RegisteredNavRoute>) {
             .forEach { right ->
                 val hasEqualSpecificity =
                     left.pattern.literalSegmentCount ==
-                        right.pattern.literalSegmentCount
+                        right.pattern.literalSegmentCount &&
+                        left.pattern.hasCatchAllParameter ==
+                        right.pattern.hasCatchAllParameter
                 val overlaps = left.pattern.overlaps(right.pattern)
 
                 require(!hasEqualSpecificity || !overlaps) {
@@ -241,6 +308,9 @@ private fun splitRoutePathSegments(path: String): List<String>? {
 
 private val RouteParameterPattern =
     Regex("""^\{([A-Za-z][A-Za-z0-9_]*)}$""")
+
+private val CatchAllRouteParameterPattern =
+    Regex("""^\{\*([A-Za-z][A-Za-z0-9_]*)}$""")
 
 private val NavPresentation.defaultForwardMode: ForwardMode
     get() =
