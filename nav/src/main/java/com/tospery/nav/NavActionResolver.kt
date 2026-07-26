@@ -5,6 +5,7 @@ import com.tospery.base.logging.debug
 
 class NavActionResolver(
     private val routeTable: NavRouteTable,
+    private val redactSensitiveLogValues: Boolean = true,
 ) {
     fun resolve(
         target: UrlNavigationTarget,
@@ -47,7 +48,10 @@ class NavActionResolver(
                     ),
                     LogAttribute(
                         key = "target_url",
-                        value = target.toNavigationLogUrl(),
+                        value =
+                            target.toNavigationLogUrl(
+                                redactSensitiveLogValues = redactSensitiveLogValues,
+                            ),
                     ),
                     LogAttribute(
                         key = "action_type",

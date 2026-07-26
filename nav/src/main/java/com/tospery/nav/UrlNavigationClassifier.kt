@@ -18,6 +18,7 @@ data class UrlNavigationConfig(
     val trustedHosts: Set<UrlHost>,
     val systemSchemes: Set<UrlScheme> = defaultSystemSchemes,
     val webOpenMode: WebOpenMode = WebOpenMode.EXTERNAL_BROWSER,
+    val redactSensitiveLogValues: Boolean = true,
 )
 
 class UrlNavigationClassifier(
@@ -36,7 +37,10 @@ class UrlNavigationClassifier(
                 listOf(
                     LogAttribute(
                         key = "input_url",
-                        value = uri.redactNavigationUrl(),
+                        value =
+                            uri.toNavigationLogUrl(
+                                redactSensitiveLogValues = config.redactSensitiveLogValues,
+                            ),
                     ),
                     LogAttribute(
                         key = "target_type",
@@ -44,7 +48,10 @@ class UrlNavigationClassifier(
                     ),
                     LogAttribute(
                         key = "target_url",
-                        value = target.toNavigationLogUrl(),
+                        value =
+                            target.toNavigationLogUrl(
+                                redactSensitiveLogValues = config.redactSensitiveLogValues,
+                            ),
                     ),
                 ),
         ) {

@@ -35,6 +35,16 @@ class NavLoggingTest {
     }
 
     @Test
+    fun `navigation log URL preserves complete URL when redaction is disabled`() {
+        val url = "web?url=https%3A%2F%2Fexample.com%2Fvideo%3Ftoken%3Ddebug#player"
+
+        assertEquals(
+            url,
+            url.toNavigationLogUrl(redactSensitiveLogValues = false),
+        )
+    }
+
+    @Test
     fun `system URI log hides opaque recipient data`() {
         assertEquals(
             "tel:<redacted>",
@@ -75,5 +85,33 @@ class NavLoggingTest {
             entry.attributes.single { it.key == "source" }.value,
         )
         assertTrue(entry.message.contains("路由 URL"))
+    }
+
+    @Test
+    fun `route navigation emits original URL when redaction is disabled`() {
+        val entries = mutableListOf<LogEntry>()
+        LogRegistry.install(
+            object : LogProvider {
+                override fun log(entry: LogEntry) {
+                    entries += entry
+                }
+            },
+        )
+        val routeUrl = "web?url=https%3A%2F%2Fexample.com%2Fvideo%3Ftoken%3Ddebug#player"
+
+        try {
+            logRouteNavigation(
+                routeUrl = routeUrl,
+                source = "test",
+                redactSensitiveLogValues = false,
+            )
+        } finally {
+            LogRegistry.install(NoOpLogProvider)
+        }
+
+        assertEquals(
+            routeUrl,
+            entries.single().attributes.single { it.key == "route_url" }.value,
+        )
     }
 }
