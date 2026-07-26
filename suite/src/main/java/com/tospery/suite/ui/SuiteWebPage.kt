@@ -56,6 +56,7 @@ fun SuiteWebPage(
     onOpenExternal: ((String) -> Unit)? = null,
 ) {
     val isValidUrl = url.isSafeHttpsWebUrl()
+    val isLikelyImageDocument = remember(url) { url.isLikelyHttpsImageUrl() }
     val preferredTitle = title?.trim()?.takeIf(String::isNotEmpty)
     val currentOnBack by rememberUpdatedState(onBack)
     val currentOnOpenExternal by rememberUpdatedState(onOpenExternal)
@@ -162,9 +163,9 @@ fun SuiteWebPage(
                                     // 保留系统 WebView 的真实版本，只移除嵌入式标识以请求站点的移动浏览器页面。
                                     userAgentString = userAgentString.asMobileBrowserUserAgent()
 
-                                    // 固定为控件宽度，避免缺少 width=device-width 的页面按桌面宽度缩放。
-                                    useWideViewPort = false
-                                    loadWithOverviewMode = false
+                                    // 图片文档先完整适配控件宽度，之后仍可通过双指手势查看原始细节。
+                                    useWideViewPort = isLikelyImageDocument
+                                    loadWithOverviewMode = isLikelyImageDocument
                                     layoutAlgorithm = WebSettings.LayoutAlgorithm.NORMAL
 
                                     // 保留移动端浏览器常用的双指缩放，但隐藏旧式屏幕缩放按钮。
@@ -259,6 +260,12 @@ internal fun String.isSafeHttpsWebUrl(): Boolean {
         uri.rawUserInfo == null
 }
 
+internal fun String.isLikelyHttpsImageUrl(): Boolean {
+    if (!isSafeHttpsWebUrl()) return false
+    val path = runCatching { URI(trim()).path }.getOrNull() ?: return false
+    return IMAGE_FILE_NAME_REGEX.matches(path.substringAfterLast('/'))
+}
+
 private fun String.asMobileBrowserUserAgent(): String {
     return replace("; wv", "", ignoreCase = true)
         .replace(" Version/4.0", "", ignoreCase = true)
@@ -318,3 +325,9 @@ private val WEB_VIDEO_LAYOUT_FALLBACK_SCRIPT =
       window.addEventListener("resize", updateAllVideos);
     })();
     """.trimIndent()
+
+private val IMAGE_FILE_NAME_REGEX =
+    Regex(
+        pattern = """.+\.(?:avif|bmp|gif|jpe?g|png|svg|webp)""",
+        option = RegexOption.IGNORE_CASE,
+    )

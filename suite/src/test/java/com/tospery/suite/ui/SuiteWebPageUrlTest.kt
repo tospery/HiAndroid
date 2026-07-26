@@ -29,4 +29,26 @@ class SuiteWebPageUrlTest {
             assertFalse(url, url.isSafeHttpsWebUrl())
         }
     }
+
+    @Test
+    fun `recognizes HTTPS image documents by path extension`() {
+        listOf(
+            "https://github.com/owner/repo/blob/commit/docs/webui.jpg",
+            "https://raw.githubusercontent.com/owner/repo/commit/image.PNG?raw=true",
+            "https://example.com/assets/vector.svg#preview",
+        ).forEach { url ->
+            assertTrue(url, url.isLikelyHttpsImageUrl())
+        }
+    }
+
+    @Test
+    fun `does not classify pages or unsafe image URLs as image documents`() {
+        listOf(
+            "https://github.com/owner/repo/blob/commit/README.md",
+            "https://example.com/gallery?image=photo.jpg",
+            "http://example.com/photo.jpg",
+        ).forEach { url ->
+            assertFalse(url, url.isLikelyHttpsImageUrl())
+        }
+    }
 }
