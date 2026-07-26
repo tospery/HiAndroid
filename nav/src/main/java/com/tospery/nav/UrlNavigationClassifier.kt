@@ -78,7 +78,10 @@ class UrlNavigationClassifier(
         return when {
             scheme in appSchemes -> {
                 buildInternalRoute(
-                    path = host.orEmpty() + path.withLeadingSlash(),
+                    path =
+                        parsedUri
+                            .appRouteAuthority(host)
+                            .orEmpty() + path.withLeadingSlash(),
                     rawQuery = query,
                     source = uri,
                     origin =
@@ -157,6 +160,25 @@ class UrlNavigationClassifier(
 
     private fun String.withLeadingSlash(): String {
         return if (isBlank()) "" else "/$this"
+    }
+
+    /**
+     * Custom-scheme authorities are route segments rather than DNS host names.
+     *
+     * [URI.host] is null for valid route identifiers such as `received_events`, so fall back to
+     * the raw authority while rejecting authority syntax that could be interpreted as user info,
+     * a port, or an IPv6 address.
+     */
+    private fun URI.appRouteAuthority(host: String?): String? {
+        if (host != null) return host
+
+        val authority = rawAuthority?.lowercase() ?: return null
+        return authority.takeIf {
+            rawUserInfo == null &&
+                port == -1 &&
+                '@' !in authority &&
+                ':' !in authority
+        }
     }
 
     private companion object {

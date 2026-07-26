@@ -29,6 +29,22 @@ class UrlNavigationClassifierTest {
     }
 
     @Test
+    fun customSchemeSupportsNonDnsRouteAuthority() {
+        val target = classifier.classify("higit://received_events")
+
+        assertEquals(
+            UrlNavigationTarget.InternalRoute(
+                route = NavRoute("received_events"),
+                origin =
+                    InternalRouteOrigin.AppScheme(
+                        scheme = UrlScheme("higit"),
+                    ),
+            ),
+            target,
+        )
+    }
+
+    @Test
     fun customSchemeOverlayPreservesEncodedRouteArguments() {
         val overlay =
             NavOverlayRoute.Predefined(
