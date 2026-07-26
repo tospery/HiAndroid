@@ -307,10 +307,10 @@ private fun splitRoutePathSegments(path: String): List<String>? {
 }
 
 private val RouteParameterPattern =
-    Regex("""^\{([A-Za-z][A-Za-z0-9_]*)}$""")
+    Regex("""^\{([A-Za-z][A-Za-z0-9_]*)\}$""")
 
 private val CatchAllRouteParameterPattern =
-    Regex("""^\{\*([A-Za-z][A-Za-z0-9_]*)}$""")
+    Regex("""^\{\*([A-Za-z][A-Za-z0-9_]*)\}$""")
 
 private val NavPresentation.defaultForwardMode: ForwardMode
     get() =

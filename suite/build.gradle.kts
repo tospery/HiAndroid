@@ -32,6 +32,7 @@ dependencies {
     api(libs.androidx.compose.ui)
 
     implementation(project(":net:retrofit"))
+    implementation(libs.androidx.activity.compose)
     implementation(libs.androidx.core.ktx)
     api(libs.androidx.compose.ui.graphics)
     api(libs.kotlinx.coroutines.core)

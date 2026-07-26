@@ -1,34 +1,35 @@
 package com.tospery.suite.ui
 
-import android.net.Uri
+import android.webkit.CookieManager
 import android.webkit.WebChromeClient
 import android.webkit.WebResourceRequest
 import android.webkit.WebSettings
 import android.webkit.WebView
 import android.webkit.WebViewClient
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.ArrowBack
-import androidx.compose.material3.CenterAlignedTopAppBar
-import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material.icons.outlined.OpenInBrowser
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -37,6 +38,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import com.tospery.suite.R
+import java.net.URI
 
 /**
  * 用于展示 HTTPS 页面的无业务通用组件。
@@ -45,24 +47,42 @@ import com.tospery.suite.R
  * 同时保持 HTTPS 白名单、禁止本地文件与 ContentProvider 访问，并且不暴露原生 JS bridge。
  * [title] 有非空值时优先显示；否则使用网页通过 WebChromeClient 返回的标题。
  */
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SuiteWebPage(
     url: String,
     onBack: () -> Unit,
     modifier: Modifier = Modifier,
     title: String? = null,
+    onOpenExternal: ((String) -> Unit)? = null,
 ) {
-    val isValidUrl = url.isSafeHttpsUrl()
+    val isValidUrl = url.isSafeHttpsWebUrl()
     val preferredTitle = title?.trim()?.takeIf(String::isNotEmpty)
+    val currentOnBack by rememberUpdatedState(onBack)
+    val currentOnOpenExternal by rememberUpdatedState(onOpenExternal)
     var documentTitle by remember(url) { mutableStateOf("") }
     var loadingProgress by remember(url) { mutableIntStateOf(0) }
+    var activeUrl by remember(url) { mutableStateOf(url) }
+    var activeWebView by remember(url) { mutableStateOf<WebView?>(null) }
+    val navigateBack = {
+        val currentWebView = activeWebView
+        if (currentWebView?.canGoBack() == true) {
+            currentWebView.goBack()
+        } else {
+            currentOnBack()
+        }
+    }
+
+    BackHandler(
+        enabled = isValidUrl,
+        onBack = navigateBack,
+    )
 
     Scaffold(
         modifier = modifier,
+        contentWindowInsets = WindowInsets(0, 0, 0, 0),
         topBar = {
             Column {
-                CenterAlignedTopAppBar(
+                SuiteCenterAlignedTopAppBar(
                     title = {
                         Text(
                             text = preferredTitle ?: documentTitle,
@@ -71,7 +91,7 @@ fun SuiteWebPage(
                         )
                     },
                     navigationIcon = {
-                        IconButton(onClick = onBack) {
+                        IconButton(onClick = navigateBack) {
                             Icon(
                                 imageVector = Icons.AutoMirrored.Outlined.ArrowBack,
                                 contentDescription =
@@ -79,10 +99,21 @@ fun SuiteWebPage(
                             )
                         }
                     },
-                    colors =
-                        TopAppBarDefaults.topAppBarColors(
-                            containerColor = MaterialTheme.colorScheme.background,
-                        ),
+                    actions = {
+                        if (isValidUrl && currentOnOpenExternal != null) {
+                            IconButton(
+                                onClick = {
+                                    currentOnOpenExternal?.invoke(activeUrl)
+                                },
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Outlined.OpenInBrowser,
+                                    contentDescription =
+                                        stringResource(R.string.suite_web_open_external),
+                                )
+                            }
+                        }
+                    },
                 )
 
                 Box(
@@ -113,8 +144,9 @@ fun SuiteWebPage(
                     AndroidView(
                         factory = { context ->
                             WebView(context).apply {
+                                activeWebView = this
                                 settings.apply {
-                                    // 现代移动网页通常依赖脚本和 DOM Storage 完成响应式布局与内容渲染。
+                                    // 该组件用于真实网页；README 等不受信任静态文档使用独立的无脚本 WebView。
                                     javaScriptEnabled = true
                                     domStorageEnabled = true
                                     javaScriptCanOpenWindowsAutomatically = false
@@ -125,6 +157,7 @@ fun SuiteWebPage(
                                     mixedContentMode =
                                         WebSettings.MIXED_CONTENT_NEVER_ALLOW
                                     safeBrowsingEnabled = true
+                                    mediaPlaybackRequiresUserGesture = true
 
                                     // 保留系统 WebView 的真实版本，只移除嵌入式标识以请求站点的移动浏览器页面。
                                     userAgentString = userAgentString.asMobileBrowserUserAgent()
@@ -139,6 +172,7 @@ fun SuiteWebPage(
                                     builtInZoomControls = true
                                     displayZoomControls = false
                                 }
+                                CookieManager.getInstance().setAcceptThirdPartyCookies(this, false)
 
                                 webViewClient =
                                     object : WebViewClient() {
@@ -146,16 +180,20 @@ fun SuiteWebPage(
                                             view: WebView,
                                             request: WebResourceRequest,
                                         ): Boolean {
-                                            return !request.url
-                                                .toString()
-                                                .isSafeHttpsUrl()
+                                            if (!request.isForMainFrame) return false
+                                            return !request.url.toString().isSafeHttpsWebUrl()
                                         }
 
                                         override fun onPageFinished(
                                             view: WebView,
                                             url: String,
                                         ) {
+                                            activeUrl = url
                                             loadingProgress = 100
+                                            view.evaluateJavascript(
+                                                WEB_VIDEO_LAYOUT_FALLBACK_SCRIPT,
+                                                null,
+                                            )
                                         }
                                     }
 
@@ -181,11 +219,16 @@ fun SuiteWebPage(
                             }
                         },
                         modifier = Modifier.fillMaxSize(),
-                        onRelease = { webView ->
-                            webView.stopLoading()
-                            webView.webChromeClient = WebChromeClient()
-                            webView.webViewClient = WebViewClient()
-                            webView.destroy()
+                        onRelease = { releasedWebView ->
+                            if (activeWebView === releasedWebView) {
+                                activeWebView = null
+                            }
+                            releasedWebView.onPause()
+                            releasedWebView.stopLoading()
+                            releasedWebView.webChromeClient = WebChromeClient()
+                            releasedWebView.webViewClient = WebViewClient()
+                            releasedWebView.removeAllViews()
+                            releasedWebView.destroy()
                         },
                     )
                 }
@@ -200,13 +243,78 @@ fun SuiteWebPage(
     }
 }
 
-private fun String.isSafeHttpsUrl(): Boolean {
-    val uri = runCatching { Uri.parse(trim()) }.getOrNull() ?: return false
-    return uri.scheme?.equals("https", ignoreCase = true) == true &&
-        !uri.host.isNullOrBlank()
+internal fun String.isSafeHttpsWebUrl(): Boolean {
+    val normalizedUrl = trim()
+    if (
+        normalizedUrl.isEmpty() ||
+        normalizedUrl.any(Char::isISOControl) ||
+        '\\' in normalizedUrl
+    ) {
+        return false
+    }
+    val uri = runCatching { URI(normalizedUrl) }.getOrNull() ?: return false
+    return uri.isAbsolute &&
+        uri.scheme.equals("https", ignoreCase = true) &&
+        !uri.host.isNullOrBlank() &&
+        uri.rawUserInfo == null
 }
 
 private fun String.asMobileBrowserUserAgent(): String {
     return replace("; wv", "", ignoreCase = true)
         .replace(" Version/4.0", "", ignoreCase = true)
 }
+
+/**
+ * Android WebView 在控件首次以 0 高度创建时，个别网页的 `vh` 上限会停留在 0px。
+ * 仅修复已经取得元数据、可见、具有宽度且最终高度仍为 0 的 video，不影响正常布局。
+ */
+private val WEB_VIDEO_LAYOUT_FALLBACK_SCRIPT =
+    """
+    (() => {
+      const updateVideoLayout = (video) => {
+        const styles = window.getComputedStyle(video);
+        const rect = video.getBoundingClientRect();
+        const computedMaxHeight = Number.parseFloat(styles.maxHeight);
+        const viewportHeight = Math.max(
+          window.innerHeight,
+          document.documentElement.clientHeight
+        );
+        if (
+          video.videoWidth <= 0 ||
+          video.videoHeight <= 0 ||
+          video.controls !== true ||
+          styles.display === "none" ||
+          styles.visibility === "hidden" ||
+          rect.width <= 0 ||
+          rect.height > 0 ||
+          computedMaxHeight !== 0 ||
+          viewportHeight <= 0
+        ) {
+          return;
+        }
+
+        const naturalHeight = rect.width * video.videoHeight / video.videoWidth;
+        video.style.maxHeight = viewportHeight + "px";
+        video.style.height = Math.min(naturalHeight, viewportHeight) + "px";
+        video.style.objectFit = "contain";
+      };
+
+      const updateAllVideos = () => {
+        document.querySelectorAll("video").forEach((video) => {
+          if (video.dataset.suiteLayoutFallback !== "true") {
+            video.dataset.suiteLayoutFallback = "true";
+            video.addEventListener(
+              "loadedmetadata",
+              () => updateVideoLayout(video)
+            );
+          }
+          updateVideoLayout(video);
+        });
+      };
+
+      updateAllVideos();
+      window.requestAnimationFrame(updateAllVideos);
+      window.setTimeout(updateAllVideos, 250);
+      window.addEventListener("resize", updateAllVideos);
+    })();
+    """.trimIndent()
