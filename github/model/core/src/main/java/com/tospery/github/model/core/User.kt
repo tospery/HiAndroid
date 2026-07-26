@@ -15,6 +15,19 @@ value class UserId(
 }
 
 /**
+ * GitHub 账号类型。
+ *
+ * GitHub REST API 可能继续扩展 `type` 字段，因此未知值必须保留为 [UNKNOWN]，
+ * 不能默认误判为个人开发者账号。
+ */
+enum class UserAccountType {
+    USER,
+    ORGANIZATION,
+    BOT,
+    UNKNOWN,
+}
+
+/**
  * 当前登录用户领域模型。
  *
  * 这里只表达 App 需要长期使用的用户摘要；
@@ -36,4 +49,5 @@ data class User(
     val publicReposCount: Int? = null,
     val createdAt: String? = null,
     val email: String? = null,
+    val accountType: UserAccountType = UserAccountType.USER,
 )
