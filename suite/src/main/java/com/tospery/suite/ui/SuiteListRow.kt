@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.text.TextAutoSize
@@ -26,6 +27,7 @@ import androidx.compose.ui.unit.sp
 
 private val SuiteListRowContentPadding =
     PaddingValues(horizontal = 20.dp, vertical = 8.dp)
+private val SuiteListRowMinHeight = 56.dp
 private val SuiteListRowTrailingTextMinFontSize = 12.sp
 private val SuiteListRowTrailingTextStepSize = 1.sp
 
@@ -71,6 +73,7 @@ fun SuiteListRow(
             modifier =
                 rowModifier
                     .fillMaxWidth()
+                    .heightIn(min = SuiteListRowMinHeight)
                     .padding(contentPadding),
             verticalAlignment = Alignment.CenterVertically,
         ) {
