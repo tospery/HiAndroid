@@ -8,6 +8,7 @@ import com.tospery.base.error.AppError
  */
 sealed interface NetworkError : AppError {
     data class Unknown(
+        override val message: String? = null,
         override val debugMessage: String? = null,
         override val cause: Throwable? = null,
     ) : NetworkError
@@ -18,11 +19,13 @@ sealed interface NetworkError : AppError {
  */
 sealed interface ReachableError : NetworkError {
     data class NoConnectivity(
+        override val message: String? = null,
         override val debugMessage: String? = null,
         override val cause: Throwable? = null,
     ) : ReachableError
 
     data class Timeout(
+        override val message: String? = null,
         override val debugMessage: String? = null,
         override val cause: Throwable? = null,
     ) : ReachableError
@@ -33,16 +36,19 @@ sealed interface ReachableError : NetworkError {
  */
 sealed interface InvalidDataError : NetworkError {
     data class InvalidResponseFormat(
+        override val message: String? = null,
         override val debugMessage: String? = null,
         override val cause: Throwable? = null,
     ) : InvalidDataError
 
     data class ParseFailure(
+        override val message: String? = null,
         override val debugMessage: String? = null,
         override val cause: Throwable? = null,
     ) : InvalidDataError
 
     data class EmptyList(
+        override val message: String? = null,
         override val debugMessage: String? = null,
         override val cause: Throwable? = null,
     ) : InvalidDataError
@@ -53,11 +59,13 @@ sealed interface InvalidDataError : NetworkError {
  */
 sealed interface AuthError : NetworkError {
     data class Unauthorized(
+        override val message: String? = null,
         override val debugMessage: String? = null,
         override val cause: Throwable? = null,
     ) : AuthError
 
     data class SessionExpired(
+        override val message: String? = null,
         override val debugMessage: String? = null,
         override val cause: Throwable? = null,
     ) : AuthError
@@ -69,12 +77,14 @@ sealed interface AuthError : NetworkError {
 sealed interface ServerError : NetworkError {
     data class HttpFailure(
         val statusCode: Int,
+        override val message: String? = null,
         override val debugMessage: String? = null,
         override val cause: Throwable? = null,
     ) : ServerError
 
     data class BusinessFailure(
         val code: String,
+        override val message: String? = null,
         override val debugMessage: String? = null,
         override val cause: Throwable? = null,
     ) : ServerError

@@ -13,6 +13,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 
 @Composable
@@ -20,6 +21,7 @@ internal fun SuiteStateLayout(
     title: String,
     modifier: Modifier = Modifier,
     description: String? = null,
+    descriptionMaxLines: Int = Int.MAX_VALUE,
     icon: (@Composable () -> Unit)? = null,
     action: (@Composable () -> Unit)? = null,
 ) {
@@ -61,6 +63,8 @@ internal fun SuiteStateLayout(
                         textAlign = TextAlign.Center,
                         style =
                             MaterialTheme.typography.bodyMedium,
+                        maxLines = descriptionMaxLines,
+                        overflow = TextOverflow.Ellipsis,
                     )
                 }
 

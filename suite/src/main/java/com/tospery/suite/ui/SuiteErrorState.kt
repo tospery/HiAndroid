@@ -8,6 +8,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import com.tospery.base.error.appErrorMessageOrNull
 
 /**
  * 通用错误状态展示组件。
@@ -20,13 +21,15 @@ fun SuiteErrorState(
     title: String,
     modifier: Modifier = Modifier,
     description: String? = null,
+    error: Throwable? = null,
     actionText: String? = null,
     onActionClick: (() -> Unit)? = null,
 ) {
     SuiteStateLayout(
         title = title,
         modifier = modifier,
-        description = description,
+        description = error?.appErrorMessageOrNull() ?: description,
+        descriptionMaxLines = ERROR_DESCRIPTION_MAX_LINES,
         icon = {
             Icon(
                 imageVector = Icons.Outlined.ErrorOutline,
@@ -43,3 +46,5 @@ fun SuiteErrorState(
         },
     )
 }
+
+private const val ERROR_DESCRIPTION_MAX_LINES = 3

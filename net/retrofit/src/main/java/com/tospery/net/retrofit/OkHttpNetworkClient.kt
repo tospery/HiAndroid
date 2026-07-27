@@ -63,6 +63,7 @@ private class RawOkHttpNetworkClient(
                     throw HttpStatusException(
                         statusCode = response.code,
                         message = response.message,
+                        apiMessage = bytes.decodeToString().let(::parseApiErrorMessage),
                     )
                 }
             }
@@ -75,6 +76,7 @@ private class RawOkHttpNetworkClient(
                         AppResult.Failure(
                             ServerError.HttpFailure(
                                 statusCode = httpStatusException.statusCode,
+                                message = httpStatusException.apiMessage,
                                 debugMessage = httpStatusException.message,
                                 cause = httpStatusException,
                             ),
@@ -94,4 +96,5 @@ private class RawOkHttpNetworkClient(
 private class HttpStatusException(
     val statusCode: Int,
     override val message: String?,
+    val apiMessage: String?,
 ) : RuntimeException(message)

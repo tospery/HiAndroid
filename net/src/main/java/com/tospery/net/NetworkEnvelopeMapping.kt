@@ -71,6 +71,7 @@ object DefaultBusinessErrorMapper : BusinessErrorMapper {
     override fun map(code: String, message: String?): NetworkError {
         return ServerError.BusinessFailure(
             code = code,
+            message = message,
             debugMessage = message,
         )
     }

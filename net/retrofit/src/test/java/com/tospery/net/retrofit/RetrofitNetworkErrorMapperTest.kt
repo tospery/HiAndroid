@@ -13,11 +13,11 @@ import retrofit2.Response
 
 class RetrofitNetworkErrorMapperTest {
     @Test
-    fun httpExceptionKeepsStatusCode() {
+    fun httpExceptionKeepsStatusCodeAndApiMessage() {
         val throwable = HttpException(
             Response.error<Any>(
                 403,
-                "forbidden".toResponseBody(),
+                """{"message":"GitHub access is restricted."}""".toResponseBody(),
             ),
         )
 
@@ -26,7 +26,22 @@ class RetrofitNetworkErrorMapperTest {
         assertTrue(error is ServerError.HttpFailure)
         error as ServerError.HttpFailure
         assertEquals(403, error.statusCode)
+        assertEquals("GitHub access is restricted.", error.message)
         assertSame(throwable, error.cause)
+    }
+
+    @Test
+    fun directHttpResponseKeepsApiMessage() {
+        val response =
+            Response.error<Any>(
+                422,
+                """{"message":"Validation failed."}""".toResponseBody(),
+            )
+
+        val error = response.toHttpFailure()
+
+        assertEquals(422, error.statusCode)
+        assertEquals("Validation failed.", error.message)
     }
 
     @Test

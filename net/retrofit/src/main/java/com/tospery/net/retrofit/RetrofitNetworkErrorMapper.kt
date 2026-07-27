@@ -3,7 +3,6 @@ package com.tospery.net.retrofit
 import com.tospery.net.DefaultNetworkErrorMapper
 import com.tospery.net.NetworkError
 import com.tospery.net.NetworkErrorMapper
-import com.tospery.net.ServerError
 import retrofit2.HttpException
 
 /**
@@ -16,11 +15,7 @@ class RetrofitNetworkErrorMapper(
 ) : NetworkErrorMapper {
     override fun map(throwable: Throwable): NetworkError {
         if (throwable is HttpException) {
-            return ServerError.HttpFailure(
-                statusCode = throwable.code(),
-                debugMessage = throwable.message,
-                cause = throwable,
-            )
+            return throwable.toHttpFailure()
         }
 
         return fallback.map(throwable)

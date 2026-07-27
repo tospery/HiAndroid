@@ -29,7 +29,11 @@ class LoggingNetworkClient(
 
             is AppResult.Failure -> {
                 val error = result.error as? NetworkError
-                    ?: NetworkError.Unknown(debugMessage = result.error.debugMessage, cause = result.error.cause)
+                    ?: NetworkError.Unknown(
+                        message = result.error.message,
+                        debugMessage = result.error.debugMessage,
+                        cause = result.error.cause,
+                    )
 
                 logSink.log(
                     NetworkLogEvent.RequestFailed(

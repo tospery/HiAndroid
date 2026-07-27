@@ -60,6 +60,7 @@ class NetworkEnvelopeMappingTest {
             AppResult.Failure(
                 ServerError.BusinessFailure(
                     code = "40101",
+                    message = "登录已过期",
                     debugMessage = "登录已过期",
                 ),
             ),
