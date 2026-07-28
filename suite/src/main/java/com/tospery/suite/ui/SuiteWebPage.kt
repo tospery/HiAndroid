@@ -41,10 +41,10 @@ import com.tospery.suite.R
 import java.net.URI
 
 /**
- * 用于展示 HTTPS 页面的无业务通用组件。
+ * 用于展示 HTTP(S) 页面的无业务通用组件。
  *
  * 为获得接近移动浏览器的渲染效果，启用 JavaScript 和 DOM Storage；
- * 同时保持 HTTPS 白名单、禁止本地文件与 ContentProvider 访问，并且不暴露原生 JS bridge。
+ * 同时保持 Web scheme 白名单、禁止本地文件与 ContentProvider 访问，并且不暴露原生 JS bridge。
  * [title] 有非空值时优先显示；否则使用网页通过 WebChromeClient 返回的标题。
  */
 @Composable
@@ -55,8 +55,8 @@ fun SuiteWebPage(
     title: String? = null,
     onOpenExternal: ((String) -> Unit)? = null,
 ) {
-    val isValidUrl = url.isSafeHttpsWebUrl()
-    val isLikelyImageDocument = remember(url) { url.isLikelyHttpsImageUrl() }
+    val isValidUrl = url.isSafeWebUrl()
+    val isLikelyImageDocument = remember(url) { url.isLikelyImageUrl() }
     val preferredTitle = title?.trim()?.takeIf(String::isNotEmpty)
     val currentOnBack by rememberUpdatedState(onBack)
     val currentOnOpenExternal by rememberUpdatedState(onOpenExternal)
@@ -182,7 +182,7 @@ fun SuiteWebPage(
                                             request: WebResourceRequest,
                                         ): Boolean {
                                             if (!request.isForMainFrame) return false
-                                            return !request.url.toString().isSafeHttpsWebUrl()
+                                            return !request.url.toString().isSafeWebUrl()
                                         }
 
                                         override fun onPageFinished(
@@ -244,7 +244,7 @@ fun SuiteWebPage(
     }
 }
 
-internal fun String.isSafeHttpsWebUrl(): Boolean {
+internal fun String.isSafeWebUrl(): Boolean {
     val normalizedUrl = trim()
     if (
         normalizedUrl.isEmpty() ||
@@ -254,14 +254,17 @@ internal fun String.isSafeHttpsWebUrl(): Boolean {
         return false
     }
     val uri = runCatching { URI(normalizedUrl) }.getOrNull() ?: return false
+    val isSupportedScheme =
+        uri.scheme.equals("http", ignoreCase = true) ||
+            uri.scheme.equals("https", ignoreCase = true)
     return uri.isAbsolute &&
-        uri.scheme.equals("https", ignoreCase = true) &&
+        isSupportedScheme &&
         !uri.host.isNullOrBlank() &&
         uri.rawUserInfo == null
 }
 
-internal fun String.isLikelyHttpsImageUrl(): Boolean {
-    if (!isSafeHttpsWebUrl()) return false
+internal fun String.isLikelyImageUrl(): Boolean {
+    if (!isSafeWebUrl()) return false
     val path = runCatching { URI(trim()).path }.getOrNull() ?: return false
     return IMAGE_FILE_NAME_REGEX.matches(path.substringAfterLast('/'))
 }
