@@ -21,9 +21,9 @@ data class UnknownAppError(
 class AppErrorException(
     val appError: AppError,
 ) : RuntimeException(
-        appError.message ?: appError.debugMessage,
-        appError.cause,
-    )
+    appError.message ?: appError.debugMessage,
+    appError.cause,
+)
 
 /** 返回可向用户展示的 API 错误文案，不回退到调试文案。 */
 fun Throwable.appErrorMessageOrNull(): String? =
