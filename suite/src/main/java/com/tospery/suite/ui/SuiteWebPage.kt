@@ -54,12 +54,14 @@ fun SuiteWebPage(
     modifier: Modifier = Modifier,
     title: String? = null,
     onOpenExternal: ((String) -> Unit)? = null,
+    onNavigationRequest: ((String) -> SuiteWebNavigationDecision)? = null,
 ) {
     val isValidUrl = url.isSafeWebUrl()
     val isLikelyImageDocument = remember(url) { url.isLikelyImageUrl() }
     val preferredTitle = title?.trim()?.takeIf(String::isNotEmpty)
     val currentOnBack by rememberUpdatedState(onBack)
     val currentOnOpenExternal by rememberUpdatedState(onOpenExternal)
+    val currentOnNavigationRequest by rememberUpdatedState(onNavigationRequest)
     var documentTitle by remember(url) { mutableStateOf("") }
     var loadingProgress by remember(url) { mutableIntStateOf(0) }
     var activeUrl by remember(url) { mutableStateOf(url) }
@@ -182,7 +184,18 @@ fun SuiteWebPage(
                                             request: WebResourceRequest,
                                         ): Boolean {
                                             if (!request.isForMainFrame) return false
-                                            return !request.url.toString().isSafeWebUrl()
+                                            val targetUrl = request.url.toString()
+                                            return when (
+                                                currentOnNavigationRequest?.invoke(targetUrl)
+                                            ) {
+                                                SuiteWebNavigationDecision.ALLOW_IN_WEB_VIEW,
+                                                null,
+                                                -> !targetUrl.isSafeWebUrl()
+
+                                                SuiteWebNavigationDecision.CONSUMED,
+                                                SuiteWebNavigationDecision.BLOCKED,
+                                                -> true
+                                            }
                                         }
 
                                         override fun onPageFinished(
