@@ -7,4 +7,9 @@
     <string name="suite_image_viewer_retry">Retry</string>
     <string name="suite_image_viewer_image_error_title">Unable to display image</string>
     <string name="suite_image_viewer_image_error_description">The image could not be downloaded or decoded.</string>
+    <string name="suite_media_player_back">Go back</string>
+    <string name="suite_media_player_default_title">Media player</string>
+    <string name="suite_media_player_retry">Retry</string>
+    <string name="suite_media_player_error_title">Unable to play media</string>
+    <string name="suite_media_player_error_description">The media could not be loaded or its format is not supported on this device.</string>
 </resources>

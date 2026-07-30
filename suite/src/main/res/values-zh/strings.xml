@@ -7,4 +7,9 @@
     <string name="suite_image_viewer_retry">重试</string>
     <string name="suite_image_viewer_image_error_title">无法显示图片</string>
     <string name="suite_image_viewer_image_error_description">无法下载或解析该图片。</string>
+    <string name="suite_media_player_back">返回</string>
+    <string name="suite_media_player_default_title">媒体播放器</string>
+    <string name="suite_media_player_retry">重试</string>
+    <string name="suite_media_player_error_title">无法播放媒体</string>
+    <string name="suite_media_player_error_description">无法加载该媒体，或当前设备不支持其格式。</string>
 </resources>
