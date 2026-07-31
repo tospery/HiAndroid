@@ -7,6 +7,7 @@ import androidx.activity.compose.BackHandler
 import androidx.annotation.OptIn
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
@@ -67,6 +68,7 @@ fun SuiteMediaPlayerPage(
     onBack: () -> Unit,
     modifier: Modifier = Modifier,
     httpRequestHeaders: Map<String, String> = emptyMap(),
+    actions: @Composable RowScope.() -> Unit = {},
 ) {
     val context = androidx.compose.ui.platform.LocalContext.current
     val currentOnBack by rememberUpdatedState(onBack)
@@ -147,6 +149,7 @@ fun SuiteMediaPlayerPage(
                         )
                     }
                 },
+                actions = actions,
             )
         },
     ) { innerPadding ->
