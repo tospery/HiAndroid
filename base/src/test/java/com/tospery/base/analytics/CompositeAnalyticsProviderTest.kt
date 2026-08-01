@@ -1,0 +1,216 @@
+package com.tospery.base.analytics
+
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
+import org.junit.Assert.assertTrue
+import org.junit.Test
+
+class CompositeAnalyticsProviderTest {
+    @Test
+    fun eventAndIdentitySignalsAreForwardedOnlyToEnabledProviders() {
+        val enabledProvider = RecordingAnalyticsProvider(enabled = true)
+        val disabledProvider = RecordingAnalyticsProvider(enabled = false)
+        val provider =
+            CompositeAnalyticsProvider(
+                listOf(enabledProvider, disabledProvider),
+            )
+        val properties: AnalyticsProperties =
+            mapOf(
+                "result" to AnalyticsValue.Text("success"),
+            )
+        val event =
+            AnalyticsEvent(
+                name = "test_event",
+                properties = properties,
+            )
+        val user =
+            AnalyticsUser(
+                id = "pseudonymous-user",
+                properties = properties,
+            )
+        val screen =
+            AnalyticsScreen(
+                name = "test_screen",
+                className = "TestScreen",
+                properties = properties,
+            )
+
+        provider.track(event)
+        provider.identify(user)
+        provider.setUserProperties(properties)
+        provider.trackScreen(screen)
+
+        assertEquals(listOf(event), enabledProvider.events)
+        assertEquals(listOf(user), enabledProvider.users)
+        assertEquals(listOf(properties), enabledProvider.userProperties)
+        assertEquals(listOf(screen), enabledProvider.screens)
+
+        assertTrue(disabledProvider.events.isEmpty())
+        assertTrue(disabledProvider.users.isEmpty())
+        assertTrue(disabledProvider.userProperties.isEmpty())
+        assertTrue(disabledProvider.screens.isEmpty())
+    }
+
+    @Test
+    fun lifecyclePrivacyAndControlSignalsAreForwardedToEveryProvider() {
+        val firstProvider = RecordingAnalyticsProvider(enabled = true)
+        val secondProvider = RecordingAnalyticsProvider(enabled = false)
+        val provider =
+            CompositeAnalyticsProvider(
+                listOf(firstProvider, secondProvider),
+            )
+
+        provider.setEnabled(false)
+        provider.updatePrivacyConsent(AnalyticsConsentStatus.UNKNOWN)
+        provider.updatePrivacyConsent(AnalyticsConsentStatus.GRANTED)
+        provider.preInitialize()
+        provider.initialize()
+        provider.savePendingDataOnExit()
+        provider.clearUser()
+        provider.flush()
+        provider.reset()
+
+        listOf(firstProvider, secondProvider).forEach { recordedProvider ->
+            assertEquals(listOf(false), recordedProvider.enabledValues)
+            assertEquals(
+                listOf(
+                    AnalyticsConsentStatus.UNKNOWN,
+                    AnalyticsConsentStatus.GRANTED,
+                ),
+                recordedProvider.consentStatuses,
+            )
+            assertEquals(1, recordedProvider.preInitializeCalls)
+            assertEquals(1, recordedProvider.initializeCalls)
+            assertEquals(1, recordedProvider.savePendingDataOnExitCalls)
+            assertEquals(1, recordedProvider.clearUserCalls)
+            assertEquals(1, recordedProvider.flushCalls)
+            assertEquals(1, recordedProvider.resetCalls)
+        }
+    }
+
+    @Test
+    fun enabledStateReflectsAnyEnabledProvider() {
+        val firstProvider = RecordingAnalyticsProvider(enabled = false)
+        val secondProvider = RecordingAnalyticsProvider(enabled = true)
+        val provider =
+            CompositeAnalyticsProvider(
+                listOf(firstProvider, secondProvider),
+            )
+
+        assertTrue(provider.isEnabled())
+
+        secondProvider.setEnabled(false)
+
+        assertFalse(provider.isEnabled())
+    }
+
+    @Test
+    fun noOpProviderRemainsDisabledAndAcceptsAllOperations() {
+        val properties: AnalyticsProperties =
+            mapOf(
+                "result" to AnalyticsValue.Text("ignored"),
+            )
+
+        NoOpAnalyticsProvider.setEnabled(true)
+        NoOpAnalyticsProvider.updatePrivacyConsent(AnalyticsConsentStatus.UNKNOWN)
+        NoOpAnalyticsProvider.updatePrivacyConsent(AnalyticsConsentStatus.DENIED)
+        NoOpAnalyticsProvider.preInitialize()
+        NoOpAnalyticsProvider.initialize()
+        NoOpAnalyticsProvider.track(
+            AnalyticsEvent(
+                name = "ignored_event",
+                properties = properties,
+            ),
+        )
+        NoOpAnalyticsProvider.identify(
+            AnalyticsUser(
+                id = "ignored-user",
+                properties = properties,
+            ),
+        )
+        NoOpAnalyticsProvider.setUserProperties(properties)
+        NoOpAnalyticsProvider.trackScreen(
+            AnalyticsScreen(
+                name = "ignored_screen",
+                properties = properties,
+            ),
+        )
+        NoOpAnalyticsProvider.savePendingDataOnExit()
+        NoOpAnalyticsProvider.clearUser()
+        NoOpAnalyticsProvider.flush()
+        NoOpAnalyticsProvider.reset()
+
+        assertFalse(NoOpAnalyticsProvider.isEnabled())
+    }
+
+    private class RecordingAnalyticsProvider(
+        enabled: Boolean,
+    ) : AnalyticsProvider {
+        private var enabled: Boolean = enabled
+
+        val enabledValues = mutableListOf<Boolean>()
+        val events = mutableListOf<AnalyticsEvent>()
+        val users = mutableListOf<AnalyticsUser>()
+        val userProperties = mutableListOf<AnalyticsProperties>()
+        val screens = mutableListOf<AnalyticsScreen>()
+        val consentStatuses = mutableListOf<AnalyticsConsentStatus>()
+
+        var preInitializeCalls: Int = 0
+        var initializeCalls: Int = 0
+        var savePendingDataOnExitCalls: Int = 0
+        var clearUserCalls: Int = 0
+        var flushCalls: Int = 0
+        var resetCalls: Int = 0
+
+        override fun isEnabled(): Boolean = enabled
+
+        override fun setEnabled(enabled: Boolean) {
+            this.enabled = enabled
+            enabledValues += enabled
+        }
+
+        override fun track(event: AnalyticsEvent) {
+            events += event
+        }
+
+        override fun identify(user: AnalyticsUser) {
+            users += user
+        }
+
+        override fun setUserProperties(properties: AnalyticsProperties) {
+            userProperties += properties
+        }
+
+        override fun trackScreen(screen: AnalyticsScreen) {
+            screens += screen
+        }
+
+        override fun clearUser() {
+            clearUserCalls++
+        }
+
+        override fun flush() {
+            flushCalls++
+        }
+
+        override fun reset() {
+            resetCalls++
+        }
+
+        override fun preInitialize() {
+            preInitializeCalls++
+        }
+
+        override fun initialize() {
+            initializeCalls++
+        }
+
+        override fun savePendingDataOnExit() {
+            savePendingDataOnExitCalls++
+        }
+
+        override fun updatePrivacyConsent(status: AnalyticsConsentStatus) {
+            consentStatuses += status
+        }
+    }
+}
