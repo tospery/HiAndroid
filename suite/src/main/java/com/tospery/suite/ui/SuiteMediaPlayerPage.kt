@@ -3,7 +3,6 @@
 package com.tospery.suite.ui
 
 import android.graphics.Color
-import android.view.View
 import androidx.activity.compose.BackHandler
 import androidx.annotation.OptIn
 import androidx.compose.animation.core.Animatable
@@ -11,8 +10,12 @@ import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -29,12 +32,15 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Slider
+import androidx.compose.material3.SliderDefaults
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
@@ -60,7 +66,6 @@ import androidx.media3.datasource.DefaultHttpDataSource
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.exoplayer.source.DefaultMediaSourceFactory
 import androidx.media3.ui.AspectRatioFrameLayout
-import androidx.media3.ui.PlayerControlView
 import androidx.media3.ui.PlayerView
 import com.tospery.base.logging.LogAttribute
 import com.tospery.base.logging.LogTags
@@ -69,6 +74,7 @@ import com.tospery.buildmetadata.module_suite.ModuleMetadata
 import com.tospery.suite.R
 import com.tospery.suite.media.SuiteMediaKind
 import com.tospery.suite.media.SuiteMediaRequest
+import kotlinx.coroutines.delay
 
 private val suiteMediaPlayerLogTag =
     LogTags.child(
@@ -96,6 +102,7 @@ fun SuiteMediaPlayerPage(
     var retryVersion by remember(request) { mutableIntStateOf(0) }
     var player by remember(request, retryVersion) { mutableStateOf<ExoPlayer?>(null) }
     var isPlaying by remember(request, retryVersion) { mutableStateOf(false) }
+    var hasStartedPlaying by remember(request, retryVersion) { mutableStateOf(false) }
     var hasPlaybackError by remember(request, retryVersion) { mutableStateOf(false) }
 
     BackHandler(onBack = currentOnBack)
@@ -120,6 +127,9 @@ fun SuiteMediaPlayerPage(
             object : Player.Listener {
                 override fun onIsPlayingChanged(playing: Boolean) {
                     isPlaying = playing
+                    if (playing) {
+                        hasStartedPlaying = true
+                    }
                 }
 
                 override fun onPlayerError(error: PlaybackException) {
@@ -194,6 +204,7 @@ fun SuiteMediaPlayerPage(
                     SuiteAudioPlayerContent(
                         player = activePlayer,
                         isPlaying = isPlaying,
+                        hasStartedPlaying = hasStartedPlaying,
                         modifier = Modifier.fillMaxSize(),
                     )
                 } else {
@@ -244,9 +255,25 @@ fun SuiteMediaPlayerPage(
 private fun SuiteAudioPlayerContent(
     player: ExoPlayer,
     isPlaying: Boolean,
+    hasStartedPlaying: Boolean,
     modifier: Modifier = Modifier,
 ) {
     val cdRotation = remember { Animatable(0f) }
+    var currentPosition by remember(player) { mutableLongStateOf(0L) }
+    var duration by remember(player) { mutableLongStateOf(0L) }
+    var isSeeking by remember(player) { mutableStateOf(false) }
+    var seekPosition by remember(player) { mutableLongStateOf(0L) }
+
+    LaunchedEffect(player, isPlaying, isSeeking) {
+        while (true) {
+            duration = player.duration.takeIf { it > 0L } ?: 0L
+            if (!isSeeking) {
+                currentPosition = player.currentPosition.coerceAtLeast(0L)
+            }
+            if (!isPlaying) break
+            delay(AUDIO_PROGRESS_UPDATE_INTERVAL_MILLIS.toLong())
+        }
+    }
 
     LaunchedEffect(isPlaying) {
         if (!isPlaying) return@LaunchedEffect
@@ -288,64 +315,128 @@ private fun SuiteAudioPlayerContent(
                 .height(AUDIO_CONTROL_AREA_HEIGHT)
                 .background(MaterialTheme.colorScheme.surfaceContainerHigh),
         ) {
-            AndroidView(
-                factory = { viewContext ->
-                    PlayerControlView(viewContext).apply {
-                        showTimeoutMs = 0
-                        setTimeBarMinUpdateInterval(AUDIO_PROGRESS_UPDATE_INTERVAL_MILLIS)
-                        setBackgroundColor(Color.TRANSPARENT)
-                        findViewById<View>(androidx.media3.ui.R.id.exo_play_pause)?.visibility =
-                            View.GONE
-                    }
-                },
-                update = { controlView ->
-                    controlView.player = player
-                },
-                onRelease = { controlView ->
-                    controlView.player = null
-                },
-                modifier = Modifier.fillMaxSize(),
-            )
-
-            Surface(
+            Column(
                 modifier = Modifier
-                    .align(Alignment.Center)
-                    .offset(y = AUDIO_PLAY_BUTTON_VERTICAL_OFFSET)
-                    .size(AUDIO_PLAY_BUTTON_SIZE),
-                shape = CircleShape,
-                color = MaterialTheme.colorScheme.primary,
-                tonalElevation = AUDIO_PLAY_BUTTON_ELEVATION,
+                    .fillMaxSize()
+                    .padding(horizontal = AUDIO_CONTROL_HORIZONTAL_PADDING),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.Top,
             ) {
-                IconButton(
-                    onClick = {
-                        if (isPlaying) {
-                            player.pause()
-                        } else {
-                            player.play()
-                        }
-                    },
-                    modifier = Modifier.fillMaxSize(),
+                Spacer(modifier = Modifier.height(AUDIO_CONTROL_TOP_SPACING))
+
+                Surface(
+                    modifier = Modifier.size(AUDIO_PLAY_BUTTON_SIZE),
+                    shape = CircleShape,
+                    color = MaterialTheme.colorScheme.primary,
+                    tonalElevation = AUDIO_PLAY_BUTTON_ELEVATION,
                 ) {
-                    Icon(
-                        imageVector =
+                    IconButton(
+                        onClick = {
                             if (isPlaying) {
-                                Icons.Outlined.Pause
+                                player.pause()
                             } else {
-                                Icons.Outlined.PlayArrow
-                            },
-                        contentDescription =
-                            stringResource(
+                                player.play()
+                            }
+                        },
+                        modifier = Modifier.fillMaxSize(),
+                    ) {
+                        Icon(
+                            imageVector =
                                 if (isPlaying) {
-                                    R.string.suite_media_player_pause
+                                    Icons.Outlined.Pause
                                 } else {
-                                    R.string.suite_media_player_play
+                                    Icons.Outlined.PlayArrow
                                 },
+                            contentDescription =
+                                stringResource(
+                                    if (isPlaying) {
+                                        R.string.suite_media_player_pause
+                                    } else {
+                                        R.string.suite_media_player_play
+                                    },
+                                ),
+                            tint = MaterialTheme.colorScheme.onPrimary,
+                        )
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(AUDIO_PLAY_TO_PROGRESS_SPACING))
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                ) {
+                    if (!hasStartedPlaying) {
+                        Text(
+                            text = stringResource(R.string.suite_media_player_loading),
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            style = MaterialTheme.typography.labelSmall,
+                        )
+                    } else {
+                        Spacer(modifier = Modifier.weight(1f))
+                    }
+                    Text(
+                        text =
+                            stringResource(
+                                R.string.suite_media_player_time,
+                                formatPlaybackTime(
+                                    if (isSeeking) seekPosition else currentPosition,
+                                ),
+                                formatPlaybackTime(duration),
                             ),
-                        tint = MaterialTheme.colorScheme.onPrimary,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        style = MaterialTheme.typography.labelSmall,
                     )
                 }
+
+                Slider(
+                    value =
+                        if (duration > 0L) {
+                            (
+                                (if (isSeeking) seekPosition else currentPosition)
+                                    .toFloat() / duration.toFloat()
+                            ).coerceIn(0f, 1f)
+                        } else {
+                            0f
+                        },
+                    onValueChange = { value ->
+                        if (duration > 0L) {
+                            isSeeking = true
+                            seekPosition = (value * duration).toLong()
+                        }
+                    },
+                    onValueChangeFinished = {
+                        if (duration > 0L) {
+                            player.seekTo(seekPosition)
+                            currentPosition = seekPosition
+                        }
+                        isSeeking = false
+                    },
+                    enabled = duration > 0L,
+                    colors =
+                        SliderDefaults.colors(
+                            thumbColor = MaterialTheme.colorScheme.primary,
+                            activeTrackColor = MaterialTheme.colorScheme.primary,
+                            inactiveTrackColor = MaterialTheme.colorScheme.outlineVariant,
+                        ),
+                    modifier = Modifier.fillMaxWidth(),
+                )
             }
         }
+    }
+}
+
+private fun formatPlaybackTime(milliseconds: Long): String {
+    val totalSeconds = (milliseconds / 1_000L).coerceAtLeast(0L)
+    val hours = totalSeconds / 3_600L
+    val minutes = (totalSeconds % 3_600L) / 60L
+    val seconds = totalSeconds % 60L
+    val paddedMinutes = minutes.toString().padStart(2, '0')
+    val paddedSeconds = seconds.toString().padStart(2, '0')
+    return if (hours > 0L) {
+        "$hours:$paddedMinutes:$paddedSeconds"
+    } else {
+        "$minutes:$paddedSeconds"
     }
 }
 
@@ -363,9 +454,11 @@ private fun SuiteMediaRequest.toMediaItem(): MediaItem {
 private const val AUDIO_CD_DEGREES_PER_REVOLUTION = 360f
 private const val AUDIO_PROGRESS_UPDATE_INTERVAL_MILLIS = 16
 private const val AUDIO_CD_ROTATION_DURATION_MILLIS = 8_000
+private val AUDIO_CONTROL_HORIZONTAL_PADDING = 24.dp
+private val AUDIO_CONTROL_TOP_SPACING = 12.dp
+private val AUDIO_PLAY_TO_PROGRESS_SPACING = 12.dp
 private val AUDIO_CD_VERTICAL_OFFSET = 60.dp
-private val AUDIO_CONTROL_AREA_HEIGHT = 152.dp
+private val AUDIO_CONTROL_AREA_HEIGHT = 176.dp
 private val AUDIO_PLAY_BUTTON_SIZE = 64.dp
-private val AUDIO_PLAY_BUTTON_VERTICAL_OFFSET = (-28).dp
 private val AUDIO_PLAY_BUTTON_ELEVATION = 4.dp
 private val AUDIO_CD_SIZE = 240.dp

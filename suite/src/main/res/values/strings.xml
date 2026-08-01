@@ -12,6 +12,8 @@
     <string name="suite_media_player_retry">Retry</string>
     <string name="suite_media_player_error_title">Unable to play media</string>
     <string name="suite_media_player_error_description">The media could not be loaded or its format is not supported on this device.</string>
+    <string name="suite_media_player_loading">Preparing playback</string>
     <string name="suite_media_player_play">Play</string>
     <string name="suite_media_player_pause">Pause</string>
+    <string name="suite_media_player_time">%1$s / %2$s</string>
 </resources>
