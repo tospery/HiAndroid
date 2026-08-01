@@ -62,7 +62,7 @@ fun SuiteWebPage(
     title: String? = null,
     onOpenExternal: ((String) -> Unit)? = null,
     onNavigationRequest: ((String) -> SuiteWebNavigationDecision)? = null,
-    onLoadFailure: (SuiteWebLoadFailureReason) -> Unit = {},
+    onLoadFailure: (SuiteWebLoadFailure) -> Unit = {},
 ) {
     val isValidUrl = url.isSafeWebUrl()
     val isLikelyImageDocument = remember(url) { url.isLikelyImageUrl() }
@@ -79,7 +79,12 @@ fun SuiteWebPage(
 
     LaunchedEffect(url, isValidUrl) {
         if (!isValidUrl) {
-            currentOnLoadFailure(SuiteWebLoadFailureReason.INVALID_URL)
+            currentOnLoadFailure(
+                SuiteWebLoadFailure(
+                    url = url,
+                    reason = SuiteWebLoadFailureReason.INVALID_URL,
+                ),
+            )
         }
     }
     val navigateBack = {
@@ -221,7 +226,10 @@ fun SuiteWebPage(
                                                     val isBlocked = !targetUrl.isSafeWebUrl()
                                                     if (isBlocked) {
                                                         currentOnLoadFailure(
-                                                            targetUrl.navigationFailureReason(),
+                                                            SuiteWebLoadFailure(
+                                                                url = targetUrl,
+                                                                reason = targetUrl.navigationFailureReason(),
+                                                            ),
                                                         )
                                                     }
                                                     isBlocked
@@ -230,7 +238,10 @@ fun SuiteWebPage(
                                                 SuiteWebNavigationDecision.CONSUMED -> true
                                                 SuiteWebNavigationDecision.BLOCKED -> {
                                                     currentOnLoadFailure(
-                                                        targetUrl.navigationFailureReason(),
+                                                        SuiteWebLoadFailure(
+                                                            url = targetUrl,
+                                                            reason = targetUrl.navigationFailureReason(),
+                                                        ),
                                                     )
                                                     true
                                                 }
@@ -244,7 +255,8 @@ fun SuiteWebPage(
                                         ) {
                                             if (request.isForMainFrame) {
                                                 reportLoadFailure(
-                                                    error.errorCode.toSuiteWebLoadFailureReason(),
+                                                    url = request.url.toString(),
+                                                    reason = error.errorCode.toSuiteWebLoadFailureReason(),
                                                 )
                                             }
                                         }
@@ -255,7 +267,10 @@ fun SuiteWebPage(
                                             errorResponse: WebResourceResponse,
                                         ) {
                                             if (request.isForMainFrame) {
-                                                reportLoadFailure(SuiteWebLoadFailureReason.HTTP)
+                                                reportLoadFailure(
+                                                    url = request.url.toString(),
+                                                    reason = SuiteWebLoadFailureReason.HTTP,
+                                                )
                                             }
                                         }
 
@@ -264,7 +279,10 @@ fun SuiteWebPage(
                                             handler: SslErrorHandler,
                                             error: SslError,
                                         ) {
-                                            reportLoadFailure(SuiteWebLoadFailureReason.TLS)
+                                            reportLoadFailure(
+                                                url = error.url,
+                                                reason = SuiteWebLoadFailureReason.TLS,
+                                            )
                                             handler.cancel()
                                         }
 
@@ -272,7 +290,10 @@ fun SuiteWebPage(
                                             view: WebView,
                                             detail: RenderProcessGoneDetail,
                                         ): Boolean {
-                                            reportLoadFailure(SuiteWebLoadFailureReason.RENDERER)
+                                            reportLoadFailure(
+                                                url = view.url?.takeIf(String::isNotBlank) ?: activeUrl,
+                                                reason = SuiteWebLoadFailureReason.RENDERER,
+                                            )
                                             hasFatalRendererFailure = true
                                             return true
                                         }
@@ -290,11 +311,17 @@ fun SuiteWebPage(
                                         }
 
                                         private fun reportLoadFailure(
+                                            url: String,
                                             reason: SuiteWebLoadFailureReason,
                                         ) {
                                             if (hasReportedCurrentLoadFailure) return
                                             hasReportedCurrentLoadFailure = true
-                                            currentOnLoadFailure(reason)
+                                            currentOnLoadFailure(
+                                                SuiteWebLoadFailure(
+                                                    url = url,
+                                                    reason = reason,
+                                                ),
+                                            )
                                         }
                                     }
 

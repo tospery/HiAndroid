@@ -56,7 +56,7 @@ class SuiteWebPageUrlTest {
     }
 
     @Test
-    fun `classifies WebView main document failures without URL data`() {
+    fun `classifies WebView main document failures`() {
         assertEquals(
             SuiteWebLoadFailureReason.NETWORK,
             WebViewClient.ERROR_HOST_LOOKUP.toSuiteWebLoadFailureReason(),
