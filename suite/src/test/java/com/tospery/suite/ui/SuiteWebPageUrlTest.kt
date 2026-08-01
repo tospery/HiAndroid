@@ -1,5 +1,7 @@
 package com.tospery.suite.ui
 
+import android.webkit.WebViewClient
+import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -51,5 +53,25 @@ class SuiteWebPageUrlTest {
         ).forEach { url ->
             assertFalse(url, url.isLikelyImageUrl())
         }
+    }
+
+    @Test
+    fun `classifies WebView main document failures without URL data`() {
+        assertEquals(
+            SuiteWebLoadFailureReason.NETWORK,
+            WebViewClient.ERROR_HOST_LOOKUP.toSuiteWebLoadFailureReason(),
+        )
+        assertEquals(
+            SuiteWebLoadFailureReason.TLS,
+            WebViewClient.ERROR_FAILED_SSL_HANDSHAKE.toSuiteWebLoadFailureReason(),
+        )
+        assertEquals(
+            SuiteWebLoadFailureReason.UNSUPPORTED_SCHEME,
+            WebViewClient.ERROR_UNSUPPORTED_SCHEME.toSuiteWebLoadFailureReason(),
+        )
+        assertEquals(
+            SuiteWebLoadFailureReason.UNKNOWN,
+            Int.MIN_VALUE.toSuiteWebLoadFailureReason(),
+        )
     }
 }

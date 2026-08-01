@@ -3,9 +3,9 @@ package com.tospery.base.analytics
 /**
  * 将统计操作分发到多个厂商 Provider。
  *
- * 事件、账号和页面信号沿用 [CompositeAnalyticsTracker] 的启用状态过滤规则；
- * 生命周期、隐私状态、清理和持久化操作始终发送给所有 Provider，
- * 确保被禁用的 Provider 也能收到拒绝授权、清理账号等安全指令。
+ * 事件、账号和页面进入信号沿用 [CompositeAnalyticsTracker] 的启用状态过滤规则；
+ * 页面退出、生命周期、隐私状态、清理和持久化操作始终发送给所有 Provider，
+ * 确保被禁用的 Provider 也能收到页面闭合、拒绝授权、清理账号等安全指令。
  */
 class CompositeAnalyticsProvider(
     providers: List<AnalyticsProvider>,
@@ -31,8 +31,12 @@ class CompositeAnalyticsProvider(
         tracker.setUserProperties(properties)
     }
 
-    override fun trackScreen(screen: AnalyticsScreen) {
-        tracker.trackScreen(screen)
+    override fun enterScreen(screen: AnalyticsScreen) {
+        tracker.enterScreen(screen)
+    }
+
+    override fun exitScreen(screen: AnalyticsScreen) {
+        tracker.exitScreen(screen)
     }
 
     override fun clearUser() {

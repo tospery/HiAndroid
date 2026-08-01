@@ -77,7 +77,9 @@ object NoOpAnalyticsProvider : AnalyticsProvider {
 
     override fun setUserProperties(properties: AnalyticsProperties) = Unit
 
-    override fun trackScreen(screen: AnalyticsScreen) = Unit
+    override fun enterScreen(screen: AnalyticsScreen) = Unit
+
+    override fun exitScreen(screen: AnalyticsScreen) = Unit
 
     override fun clearUser() = Unit
 

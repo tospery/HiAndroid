@@ -7,7 +7,7 @@ import org.junit.Test
 
 class CompositeAnalyticsProviderTest {
     @Test
-    fun eventAndIdentitySignalsAreForwardedOnlyToEnabledProviders() {
+    fun eventIdentityAndScreenSignalsFollowEnabledAndPairingRules() {
         val enabledProvider = RecordingAnalyticsProvider(enabled = true)
         val disabledProvider = RecordingAnalyticsProvider(enabled = false)
         val provider =
@@ -38,17 +38,20 @@ class CompositeAnalyticsProviderTest {
         provider.track(event)
         provider.identify(user)
         provider.setUserProperties(properties)
-        provider.trackScreen(screen)
+        provider.enterScreen(screen)
+        provider.exitScreen(screen)
 
         assertEquals(listOf(event), enabledProvider.events)
         assertEquals(listOf(user), enabledProvider.users)
         assertEquals(listOf(properties), enabledProvider.userProperties)
-        assertEquals(listOf(screen), enabledProvider.screens)
+        assertEquals(listOf(screen), enabledProvider.screenEntries)
+        assertEquals(listOf(screen), enabledProvider.screenExits)
 
         assertTrue(disabledProvider.events.isEmpty())
         assertTrue(disabledProvider.users.isEmpty())
         assertTrue(disabledProvider.userProperties.isEmpty())
-        assertTrue(disabledProvider.screens.isEmpty())
+        assertTrue(disabledProvider.screenEntries.isEmpty())
+        assertEquals(listOf(screen), disabledProvider.screenExits)
     }
 
     @Test
@@ -110,6 +113,11 @@ class CompositeAnalyticsProviderTest {
             mapOf(
                 "result" to AnalyticsValue.Text("ignored"),
             )
+        val screen =
+            AnalyticsScreen(
+                name = "ignored_screen",
+                properties = properties,
+            )
 
         NoOpAnalyticsProvider.setEnabled(true)
         NoOpAnalyticsProvider.updatePrivacyConsent(AnalyticsConsentStatus.UNKNOWN)
@@ -129,12 +137,8 @@ class CompositeAnalyticsProviderTest {
             ),
         )
         NoOpAnalyticsProvider.setUserProperties(properties)
-        NoOpAnalyticsProvider.trackScreen(
-            AnalyticsScreen(
-                name = "ignored_screen",
-                properties = properties,
-            ),
-        )
+        NoOpAnalyticsProvider.enterScreen(screen)
+        NoOpAnalyticsProvider.exitScreen(screen)
         NoOpAnalyticsProvider.savePendingDataOnExit()
         NoOpAnalyticsProvider.clearUser()
         NoOpAnalyticsProvider.flush()
@@ -152,7 +156,8 @@ class CompositeAnalyticsProviderTest {
         val events = mutableListOf<AnalyticsEvent>()
         val users = mutableListOf<AnalyticsUser>()
         val userProperties = mutableListOf<AnalyticsProperties>()
-        val screens = mutableListOf<AnalyticsScreen>()
+        val screenEntries = mutableListOf<AnalyticsScreen>()
+        val screenExits = mutableListOf<AnalyticsScreen>()
         val consentStatuses = mutableListOf<AnalyticsConsentStatus>()
 
         var preInitializeCalls: Int = 0
@@ -181,8 +186,12 @@ class CompositeAnalyticsProviderTest {
             userProperties += properties
         }
 
-        override fun trackScreen(screen: AnalyticsScreen) {
-            screens += screen
+        override fun enterScreen(screen: AnalyticsScreen) {
+            screenEntries += screen
+        }
+
+        override fun exitScreen(screen: AnalyticsScreen) {
+            screenExits += screen
         }
 
         override fun clearUser() {

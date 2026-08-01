@@ -41,7 +41,15 @@ interface AnalyticsTracker {
 
     fun setUserProperties(properties: AnalyticsProperties)
 
-    fun trackScreen(screen: AnalyticsScreen)
+    /**
+     * 记录页面进入。调用方应使用相同的稳定页面名配对调用 [exitScreen]。
+     */
+    fun enterScreen(screen: AnalyticsScreen)
+
+    /**
+     * 记录页面退出，用于完成页面停留时长统计。
+     */
+    fun exitScreen(screen: AnalyticsScreen)
 
     fun clearUser()
 
@@ -61,7 +69,9 @@ object NoOpAnalyticsTracker : AnalyticsTracker {
 
     override fun setUserProperties(properties: AnalyticsProperties) = Unit
 
-    override fun trackScreen(screen: AnalyticsScreen) = Unit
+    override fun enterScreen(screen: AnalyticsScreen) = Unit
+
+    override fun exitScreen(screen: AnalyticsScreen) = Unit
 
     override fun clearUser() = Unit
 

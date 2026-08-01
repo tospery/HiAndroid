@@ -27,10 +27,15 @@ class CompositeAnalyticsTracker(
             .forEach { it.setUserProperties(properties) }
     }
 
-    override fun trackScreen(screen: AnalyticsScreen) {
+    override fun enterScreen(screen: AnalyticsScreen) {
         trackers
             .filter { it.isEnabled() }
-            .forEach { it.trackScreen(screen) }
+            .forEach { it.enterScreen(screen) }
+    }
+
+    override fun exitScreen(screen: AnalyticsScreen) {
+        // 即使 Provider 已被关闭也发送退出信号，避免留下未配对的页面会话。
+        trackers.forEach { it.exitScreen(screen) }
     }
 
     override fun clearUser() {

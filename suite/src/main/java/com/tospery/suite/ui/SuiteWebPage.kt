@@ -1,8 +1,14 @@
 package com.tospery.suite.ui
 
 import android.webkit.CookieManager
+import android.graphics.Bitmap
+import android.net.http.SslError
+import android.webkit.RenderProcessGoneDetail
+import android.webkit.SslErrorHandler
 import android.webkit.WebChromeClient
+import android.webkit.WebResourceError
 import android.webkit.WebResourceRequest
+import android.webkit.WebResourceResponse
 import android.webkit.WebSettings
 import android.webkit.WebView
 import android.webkit.WebViewClient
@@ -24,6 +30,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableIntStateOf
@@ -55,6 +62,7 @@ fun SuiteWebPage(
     title: String? = null,
     onOpenExternal: ((String) -> Unit)? = null,
     onNavigationRequest: ((String) -> SuiteWebNavigationDecision)? = null,
+    onLoadFailure: (SuiteWebLoadFailureReason) -> Unit = {},
 ) {
     val isValidUrl = url.isSafeWebUrl()
     val isLikelyImageDocument = remember(url) { url.isLikelyImageUrl() }
@@ -62,10 +70,18 @@ fun SuiteWebPage(
     val currentOnBack by rememberUpdatedState(onBack)
     val currentOnOpenExternal by rememberUpdatedState(onOpenExternal)
     val currentOnNavigationRequest by rememberUpdatedState(onNavigationRequest)
+    val currentOnLoadFailure by rememberUpdatedState(onLoadFailure)
     var documentTitle by remember(url) { mutableStateOf("") }
     var loadingProgress by remember(url) { mutableIntStateOf(0) }
     var activeUrl by remember(url) { mutableStateOf(url) }
     var activeWebView by remember(url) { mutableStateOf<WebView?>(null) }
+    var hasFatalRendererFailure by remember(url) { mutableStateOf(false) }
+
+    LaunchedEffect(url, isValidUrl) {
+        if (!isValidUrl) {
+            currentOnLoadFailure(SuiteWebLoadFailureReason.INVALID_URL)
+        }
+    }
     val navigateBack = {
         val currentWebView = activeWebView
         if (currentWebView?.canGoBack() == true) {
@@ -142,7 +158,7 @@ fun SuiteWebPage(
                     .padding(innerPadding),
             contentAlignment = Alignment.Center,
         ) {
-            if (isValidUrl) {
+            if (isValidUrl && !hasFatalRendererFailure) {
                 key(url) {
                     AndroidView(
                         factory = { context ->
@@ -179,6 +195,16 @@ fun SuiteWebPage(
 
                                 webViewClient =
                                     object : WebViewClient() {
+                                        private var hasReportedCurrentLoadFailure = false
+
+                                        override fun onPageStarted(
+                                            view: WebView,
+                                            url: String,
+                                            favicon: Bitmap?,
+                                        ) {
+                                            hasReportedCurrentLoadFailure = false
+                                        }
+
                                         override fun shouldOverrideUrlLoading(
                                             view: WebView,
                                             request: WebResourceRequest,
@@ -186,16 +212,69 @@ fun SuiteWebPage(
                                             if (!request.isForMainFrame) return false
                                             val targetUrl = request.url.toString()
                                             return when (
-                                                currentOnNavigationRequest?.invoke(targetUrl)
+                                                val decision =
+                                                    currentOnNavigationRequest?.invoke(targetUrl)
                                             ) {
                                                 SuiteWebNavigationDecision.ALLOW_IN_WEB_VIEW,
                                                 null,
-                                                -> !targetUrl.isSafeWebUrl()
+                                                -> {
+                                                    val isBlocked = !targetUrl.isSafeWebUrl()
+                                                    if (isBlocked) {
+                                                        currentOnLoadFailure(
+                                                            targetUrl.navigationFailureReason(),
+                                                        )
+                                                    }
+                                                    isBlocked
+                                                }
 
-                                                SuiteWebNavigationDecision.CONSUMED,
-                                                SuiteWebNavigationDecision.BLOCKED,
-                                                -> true
+                                                SuiteWebNavigationDecision.CONSUMED -> true
+                                                SuiteWebNavigationDecision.BLOCKED -> {
+                                                    currentOnLoadFailure(
+                                                        targetUrl.navigationFailureReason(),
+                                                    )
+                                                    true
+                                                }
                                             }
+                                        }
+
+                                        override fun onReceivedError(
+                                            view: WebView,
+                                            request: WebResourceRequest,
+                                            error: WebResourceError,
+                                        ) {
+                                            if (request.isForMainFrame) {
+                                                reportLoadFailure(
+                                                    error.errorCode.toSuiteWebLoadFailureReason(),
+                                                )
+                                            }
+                                        }
+
+                                        override fun onReceivedHttpError(
+                                            view: WebView,
+                                            request: WebResourceRequest,
+                                            errorResponse: WebResourceResponse,
+                                        ) {
+                                            if (request.isForMainFrame) {
+                                                reportLoadFailure(SuiteWebLoadFailureReason.HTTP)
+                                            }
+                                        }
+
+                                        override fun onReceivedSslError(
+                                            view: WebView,
+                                            handler: SslErrorHandler,
+                                            error: SslError,
+                                        ) {
+                                            reportLoadFailure(SuiteWebLoadFailureReason.TLS)
+                                            handler.cancel()
+                                        }
+
+                                        override fun onRenderProcessGone(
+                                            view: WebView,
+                                            detail: RenderProcessGoneDetail,
+                                        ): Boolean {
+                                            reportLoadFailure(SuiteWebLoadFailureReason.RENDERER)
+                                            hasFatalRendererFailure = true
+                                            return true
                                         }
 
                                         override fun onPageFinished(
@@ -208,6 +287,14 @@ fun SuiteWebPage(
                                                 WEB_VIDEO_LAYOUT_FALLBACK_SCRIPT,
                                                 null,
                                             )
+                                        }
+
+                                        private fun reportLoadFailure(
+                                            reason: SuiteWebLoadFailureReason,
+                                        ) {
+                                            if (hasReportedCurrentLoadFailure) return
+                                            hasReportedCurrentLoadFailure = true
+                                            currentOnLoadFailure(reason)
                                         }
                                     }
 
@@ -254,6 +341,34 @@ fun SuiteWebPage(
                 )
             }
         }
+    }
+}
+
+internal fun Int.toSuiteWebLoadFailureReason(): SuiteWebLoadFailureReason =
+    when (this) {
+        WebViewClient.ERROR_BAD_URL -> SuiteWebLoadFailureReason.INVALID_URL
+        WebViewClient.ERROR_UNSUPPORTED_SCHEME ->
+            SuiteWebLoadFailureReason.UNSUPPORTED_SCHEME
+        WebViewClient.ERROR_HOST_LOOKUP,
+        WebViewClient.ERROR_CONNECT,
+        WebViewClient.ERROR_TIMEOUT,
+        WebViewClient.ERROR_IO,
+        WebViewClient.ERROR_PROXY_AUTHENTICATION,
+        -> SuiteWebLoadFailureReason.NETWORK
+        WebViewClient.ERROR_FAILED_SSL_HANDSHAKE -> SuiteWebLoadFailureReason.TLS
+        WebViewClient.ERROR_UNKNOWN -> SuiteWebLoadFailureReason.UNKNOWN
+        else -> SuiteWebLoadFailureReason.UNKNOWN
+    }
+
+private fun String.navigationFailureReason(): SuiteWebLoadFailureReason {
+    val scheme = runCatching { URI(trim()).scheme }.getOrNull()
+    return if (
+        scheme.equals("http", ignoreCase = true) ||
+        scheme.equals("https", ignoreCase = true)
+    ) {
+        SuiteWebLoadFailureReason.INVALID_URL
+    } else {
+        SuiteWebLoadFailureReason.UNSUPPORTED_SCHEME
     }
 }
 

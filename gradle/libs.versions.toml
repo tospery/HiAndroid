@@ -17,6 +17,9 @@ vanniktechMavenPublish = "0.37.0"
 navigation = "2.9.8"
 lifecycle = "2.10.0"
 media3 = "1.10.1"
+umengCommon = "9.9.6"
+umengAsms = "1.8.7.2"
+umengUyumao = "1.1.4"
 
 [libraries]
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
@@ -54,6 +57,9 @@ moshi-kotlin = { group = "com.squareup.moshi", name = "moshi-kotlin", version.re
 
 timber = { group = "com.jakewharton.timber", name = "timber", version.ref = "timber" }
 jsoup = { group = "org.jsoup", name = "jsoup", version.ref = "jsoup" }
+umeng-common = { group = "com.umeng.umsdk", name = "common", version.ref = "umengCommon" }
+umeng-asms = { group = "com.umeng.umsdk", name = "asms", version.ref = "umengAsms" }
+umeng-uyumao = { group = "com.umeng.umsdk", name = "uyumao", version.ref = "umengUyumao" }
 
 [plugins]
 android-library = { id = "com.android.library", version.ref = "agp" }
