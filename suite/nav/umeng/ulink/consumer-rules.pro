@@ -1,0 +1,3 @@
+-keep class com.umeng.umlink.** { *; }
+-keep interface com.umeng.umlink.** { *; }
+-dontwarn com.umeng.umlink.**

@@ -168,11 +168,29 @@ val toolkitPublicationModules = mapOf(
         description =
             "Reusable Android app utilities and Compose components.",
     ),
+    ":suite-analytics-umeng" to MavenModuleMetadata(
+        artifactId = "suite-analytics-umeng",
+        displayName = "Tospery Suite Analytics Umeng",
+        description =
+            "Umeng analytics adapter for Tospery Suite.",
+    ),
     ":suite-nav-compose" to MavenModuleMetadata(
         artifactId = "suite-nav-compose",
         displayName = "Tospery Suite Navigation Compose",
         description =
             "Jetpack Navigation Compose adapter for Tospery Navigation.",
+    ),
+    ":suite-nav-umeng-ulink" to MavenModuleMetadata(
+        artifactId = "suite-nav-umeng-ulink",
+        displayName = "Tospery Suite Navigation Umeng U-Link",
+        description =
+            "Umeng U-Link wake-up and deferred navigation adapter.",
+    ),
+    ":suite-share-umeng" to MavenModuleMetadata(
+        artifactId = "suite-share-umeng",
+        displayName = "Tospery Suite Share Umeng",
+        description =
+            "Umeng U-Share adapter for vendor-independent share contracts.",
     ),
     ":github:model:core" to MavenModuleMetadata(
         artifactId = "github-model-core",

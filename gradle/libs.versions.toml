@@ -17,9 +17,12 @@ vanniktechMavenPublish = "0.37.0"
 navigation = "2.9.8"
 lifecycle = "2.10.0"
 media3 = "1.10.1"
+coil = "3.5.0"
 umengCommon = "9.9.6"
 umengAsms = "1.8.7.2"
 umengUyumao = "1.1.4"
+umengShare = "7.3.7"
+umengLink = "2.0.0"
 
 [libraries]
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
@@ -38,6 +41,10 @@ androidx-media3-exoplayer = { group = "androidx.media3", name = "media3-exoplaye
 androidx-media3-exoplayer-dash = { group = "androidx.media3", name = "media3-exoplayer-dash", version.ref = "media3" }
 androidx-media3-exoplayer-hls = { group = "androidx.media3", name = "media3-exoplayer-hls", version.ref = "media3" }
 androidx-media3-ui = { group = "androidx.media3", name = "media3-ui", version.ref = "media3" }
+coil-compose = { group = "io.coil-kt.coil3", name = "coil-compose", version.ref = "coil" }
+coil-network-okhttp = { group = "io.coil-kt.coil3", name = "coil-network-okhttp", version.ref = "coil" }
+coil-gif = { group = "io.coil-kt.coil3", name = "coil-gif", version.ref = "coil" }
+coil-svg = { group = "io.coil-kt.coil3", name = "coil-svg", version.ref = "coil" }
 
 junit = { group = "junit", name = "junit", version.ref = "junit" }
 androidx-junit = { group = "androidx.test.ext", name = "junit", version.ref = "androidxJunit" }
@@ -60,6 +67,8 @@ jsoup = { group = "org.jsoup", name = "jsoup", version.ref = "jsoup" }
 umeng-common = { group = "com.umeng.umsdk", name = "common", version.ref = "umengCommon" }
 umeng-asms = { group = "com.umeng.umsdk", name = "asms", version.ref = "umengAsms" }
 umeng-uyumao = { group = "com.umeng.umsdk", name = "uyumao", version.ref = "umengUyumao" }
+umeng-share-core = { group = "com.umeng.umsdk", name = "share-core", version.ref = "umengShare" }
+umeng-link = { group = "com.umeng.umsdk", name = "link", version.ref = "umengLink" }
 
 [plugins]
 android-library = { id = "com.android.library", version.ref = "agp" }
