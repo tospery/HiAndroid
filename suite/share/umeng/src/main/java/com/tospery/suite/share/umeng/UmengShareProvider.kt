@@ -4,12 +4,12 @@ import android.app.Activity
 import android.content.ActivityNotFoundException
 import android.content.Intent
 import android.net.Uri
+import com.tospery.base.sdk.SdkInitializationState
 import com.tospery.base.share.ShareChannel
 import com.tospery.base.share.ShareContent
 import com.tospery.base.share.ShareProvider
 import com.tospery.base.share.ShareRequest
 import com.tospery.base.share.ShareResult
-import com.tospery.suite.umeng.core.UmengSdkState
 import com.umeng.socialize.ShareAction
 import com.umeng.socialize.UMShareAPI
 import com.umeng.socialize.UMShareListener
@@ -48,7 +48,7 @@ class UmengShareProvider internal constructor(
     companion object {
         fun create(
             activity: Activity,
-            sdkState: UmengSdkState,
+            sdkState: SdkInitializationState,
             enabledChannels: Set<ShareChannel> = defaultSupportedChannels,
             onExecutionPathSelected: (ShareChannel, UmengShareExecutionPath) -> Unit = { _, _ -> },
         ): UmengShareProvider {
@@ -71,7 +71,7 @@ class UmengShareProvider internal constructor(
         }
 
         fun onActivityResult(
-            sdkState: UmengSdkState,
+            sdkState: SdkInitializationState,
             activity: Activity,
             requestCode: Int,
             resultCode: Int,
@@ -83,7 +83,7 @@ class UmengShareProvider internal constructor(
         }
 
         fun release(
-            sdkState: UmengSdkState,
+            sdkState: SdkInitializationState,
             activity: Activity,
         ) {
             if (sdkState.isInitialized()) {

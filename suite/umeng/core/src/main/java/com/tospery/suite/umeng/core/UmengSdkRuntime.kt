@@ -5,6 +5,8 @@ import com.tospery.base.logging.LogAttribute
 import com.tospery.base.logging.LogTags
 import com.tospery.base.logging.error
 import com.tospery.base.logging.info
+import com.tospery.base.sdk.ConsentAwareSdkRuntime
+import com.tospery.base.sdk.PrivacyConsentStatus
 import com.tospery.buildmetadata.module_suite_umeng_core.ModuleMetadata
 import com.umeng.commonsdk.UMConfigure
 
@@ -40,17 +42,6 @@ data class UmengSdkConfiguration(
     }
 }
 
-enum class UmengPrivacyConsentStatus {
-    UNKNOWN,
-    GRANTED,
-    DENIED,
-}
-
-/** 只读的友盟公共 SDK 运行状态，供具体产品 Adapter 阻止未授权调用。 */
-fun interface UmengSdkState {
-    fun isInitialized(): Boolean
-}
-
 /**
  * 接入同一套友盟公共 SDK 生命周期的可选产品组件。
  *
@@ -65,14 +56,8 @@ interface UmengInitializationPlugin {
 }
 
 /** 友盟公共 SDK 生命周期契约，具体产品不能直接调用 UMConfigure 初始化 API。 */
-interface UmengSdkLifecycle : UmengSdkState {
+interface UmengSdkLifecycle : ConsentAwareSdkRuntime {
     fun registerInitializationPlugin(plugin: UmengInitializationPlugin)
-
-    fun preInitialize()
-
-    fun initialize()
-
-    fun updatePrivacyConsent(status: UmengPrivacyConsentStatus)
 }
 
 private val umengSdkLifecycleLogTag =
@@ -91,7 +76,7 @@ class UmengSdkRuntime internal constructor(
     private val sdk: UmengCommonSdk,
 ) : UmengSdkLifecycle {
     private val initializationPlugins = mutableListOf<UmengInitializationPlugin>()
-    private var consentStatus = UmengPrivacyConsentStatus.UNKNOWN
+    private var consentStatus = PrivacyConsentStatus.UNKNOWN
     private var preInitializationRequested = false
     private var pluginsConfigured = false
     private var preInitialized = false
@@ -103,7 +88,7 @@ class UmengSdkRuntime internal constructor(
 
     @Synchronized
     override fun registerInitializationPlugin(plugin: UmengInitializationPlugin) {
-        check(!preInitialized && !initialized && consentStatus == UmengPrivacyConsentStatus.UNKNOWN) {
+        check(!preInitialized && !initialized && consentStatus == PrivacyConsentStatus.UNKNOWN) {
             "友盟产品插件必须在公共 SDK 预初始化和隐私授权提交前注册。"
         }
         if (initializationPlugins.none { registered -> registered === plugin }) {
@@ -118,7 +103,7 @@ class UmengSdkRuntime internal constructor(
         }
 
         preInitializationRequested = true
-        if (consentStatus != UmengPrivacyConsentStatus.GRANTED) {
+        if (consentStatus != PrivacyConsentStatus.GRANTED) {
             info(
                 tag = umengSdkLifecycleLogTag,
                 attributes =
@@ -139,7 +124,7 @@ class UmengSdkRuntime internal constructor(
         if (
             initialized ||
             permanentlyDisabled ||
-            consentStatus != UmengPrivacyConsentStatus.GRANTED
+            consentStatus != PrivacyConsentStatus.GRANTED
         ) {
             return
         }
@@ -183,9 +168,9 @@ class UmengSdkRuntime internal constructor(
     }
 
     @Synchronized
-    override fun updatePrivacyConsent(status: UmengPrivacyConsentStatus) {
+    override fun updatePrivacyConsent(status: PrivacyConsentStatus) {
         if (
-            status == UmengPrivacyConsentStatus.UNKNOWN ||
+            status == PrivacyConsentStatus.UNKNOWN ||
             consentStatus == status ||
             permanentlyDisabled
         ) {
@@ -194,8 +179,8 @@ class UmengSdkRuntime internal constructor(
 
         consentStatus = status
         when (status) {
-            UmengPrivacyConsentStatus.UNKNOWN -> error("UNKNOWN status is handled above.")
-            UmengPrivacyConsentStatus.GRANTED -> {
+            PrivacyConsentStatus.UNKNOWN -> error("UNKNOWN status is handled above.")
+            PrivacyConsentStatus.GRANTED -> {
                 if (preInitializationRequested) {
                     performPreInitialization()
                 }
@@ -204,7 +189,7 @@ class UmengSdkRuntime internal constructor(
                 }
             }
 
-            UmengPrivacyConsentStatus.DENIED -> {
+            PrivacyConsentStatus.DENIED -> {
                 val wasInitialized = initialized
                 initializationPlugins.forEachSafely(
                     operation = "plugin_consent_denied",
@@ -239,7 +224,7 @@ class UmengSdkRuntime internal constructor(
         if (
             preInitialized ||
             permanentlyDisabled ||
-            consentStatus != UmengPrivacyConsentStatus.GRANTED
+            consentStatus != PrivacyConsentStatus.GRANTED
         ) {
             return
         }

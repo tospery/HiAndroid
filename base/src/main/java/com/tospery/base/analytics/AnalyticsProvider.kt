@@ -1,16 +1,7 @@
 package com.tospery.base.analytics
 
-/**
- * App 当前掌握的统计隐私授权状态。
- *
- * UNKNOWN 表示用户尚未作出选择。厂商适配器收到该状态时不得正式初始化、
- * 上传授权结果或开始采集数据。
- */
-enum class AnalyticsConsentStatus {
-    UNKNOWN,
-    GRANTED,
-    DENIED,
-}
+import com.tospery.base.sdk.PrivacyConsentController
+import com.tospery.base.sdk.PrivacyConsentStatus
 
 /**
  * 统计服务的应用生命周期能力。
@@ -39,18 +30,8 @@ interface AnalyticsLifecycle {
     fun savePendingDataOnExit()
 }
 
-/**
- * 厂商无关的隐私授权状态入口。
- */
-interface AnalyticsPrivacyController {
-    /**
-     * 更新当前隐私授权状态。
-     *
-     * 具体适配器只应在 GRANTED 或 DENIED 时调用厂商的授权结果上传接口；
-     * UNKNOWN 不得转换成任何厂商授权结果。
-     */
-    fun updatePrivacyConsent(status: AnalyticsConsentStatus)
-}
+/** 统计服务的隐私授权边界。 */
+interface AnalyticsPrivacyController : PrivacyConsentController
 
 /**
  * 一个完整的统计服务提供者。
@@ -93,5 +74,5 @@ object NoOpAnalyticsProvider : AnalyticsProvider {
 
     override fun savePendingDataOnExit() = Unit
 
-    override fun updatePrivacyConsent(status: AnalyticsConsentStatus) = Unit
+    override fun updatePrivacyConsent(status: PrivacyConsentStatus) = Unit
 }

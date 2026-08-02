@@ -3,7 +3,7 @@ plugins {
 }
 
 android {
-    namespace = "com.tospery.suite.umeng.core"
+    namespace = "com.tospery.suite.aliyun.emas.core"
     compileSdk = 37
 
     defaultConfig {
@@ -20,8 +20,7 @@ android {
 dependencies {
     api(project(":base"))
 
-    implementation(libs.umeng.common)
-    implementation(libs.umeng.asms)
+    implementation(libs.aliyun.emas.apm.sdk)
 
     testImplementation(libs.junit)
 }

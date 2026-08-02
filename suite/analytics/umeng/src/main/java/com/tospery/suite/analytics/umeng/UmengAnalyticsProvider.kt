@@ -1,7 +1,6 @@
 package com.tospery.suite.analytics.umeng
 
 import android.content.Context
-import com.tospery.base.analytics.AnalyticsConsentStatus
 import com.tospery.base.analytics.AnalyticsEvent
 import com.tospery.base.analytics.AnalyticsProperties
 import com.tospery.base.analytics.AnalyticsProvider
@@ -11,9 +10,9 @@ import com.tospery.base.analytics.AnalyticsValue
 import com.tospery.base.logging.LogAttribute
 import com.tospery.base.logging.LogTags
 import com.tospery.base.logging.info
+import com.tospery.base.sdk.PrivacyConsentStatus
 import com.tospery.buildmetadata.module_suite_analytics_umeng.ModuleMetadata
 import com.tospery.suite.umeng.core.UmengInitializationPlugin
-import com.tospery.suite.umeng.core.UmengPrivacyConsentStatus
 import com.tospery.suite.umeng.core.UmengSdkLifecycle
 import com.umeng.analytics.MobclickAgent
 import com.uyumao.sdk.UYMManager
@@ -80,8 +79,8 @@ class UmengAnalyticsProvider internal constructor(
         }
     }
 
-    override fun updatePrivacyConsent(status: AnalyticsConsentStatus) {
-        sdkLifecycle.updatePrivacyConsent(status.toUmengPrivacyConsentStatus())
+    override fun updatePrivacyConsent(status: PrivacyConsentStatus) {
+        sdkLifecycle.updatePrivacyConsent(status)
     }
 
     @Synchronized
@@ -365,11 +364,4 @@ private fun AnalyticsValue.toUmengValue(): Any? =
         is AnalyticsValue.DecimalNumber -> value.takeIf { it.isFinite() }
         is AnalyticsValue.BooleanValue -> value.toString()
         AnalyticsValue.Null -> null
-    }
-
-private fun AnalyticsConsentStatus.toUmengPrivacyConsentStatus(): UmengPrivacyConsentStatus =
-    when (this) {
-        AnalyticsConsentStatus.UNKNOWN -> UmengPrivacyConsentStatus.UNKNOWN
-        AnalyticsConsentStatus.GRANTED -> UmengPrivacyConsentStatus.GRANTED
-        AnalyticsConsentStatus.DENIED -> UmengPrivacyConsentStatus.DENIED
     }

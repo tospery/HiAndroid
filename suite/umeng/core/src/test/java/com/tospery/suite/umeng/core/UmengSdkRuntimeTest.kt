@@ -1,5 +1,8 @@
 package com.tospery.suite.umeng.core
 
+import com.tospery.base.sdk.ConsentAwareSdkRuntime
+import com.tospery.base.sdk.PrivacyConsentStatus
+import com.tospery.base.sdk.SdkInitializationState
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertThrows
@@ -7,6 +10,14 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class UmengSdkRuntimeTest {
+    @Test
+    fun runtimeImplementsVendorNeutralLifecycleContracts() {
+        val lifecycle: ConsentAwareSdkRuntime = runtime(RecordingUmengCommonSdk())
+        val state: SdkInitializationState = lifecycle
+
+        assertFalse(state.isInitialized())
+    }
+
     @Test
     fun configurationValidatesSharedIdentifiers() {
         assertThrows(IllegalArgumentException::class.java) {
@@ -27,7 +38,7 @@ class UmengSdkRuntimeTest {
         runtime.preInitialize()
         assertTrue(sdk.calls.isEmpty())
 
-        runtime.updatePrivacyConsent(UmengPrivacyConsentStatus.GRANTED)
+        runtime.updatePrivacyConsent(PrivacyConsentStatus.GRANTED)
         runtime.initialize()
         runtime.initialize()
 
@@ -52,13 +63,13 @@ class UmengSdkRuntimeTest {
         val plugin = RecordingPlugin(sdk.calls)
         val runtime = runtime(sdk).also { it.registerInitializationPlugin(plugin) }
 
-        runtime.updatePrivacyConsent(UmengPrivacyConsentStatus.GRANTED)
+        runtime.updatePrivacyConsent(PrivacyConsentStatus.GRANTED)
         runtime.initialize()
         sdk.calls.clear()
 
-        runtime.updatePrivacyConsent(UmengPrivacyConsentStatus.DENIED)
-        runtime.updatePrivacyConsent(UmengPrivacyConsentStatus.DENIED)
-        runtime.updatePrivacyConsent(UmengPrivacyConsentStatus.GRANTED)
+        runtime.updatePrivacyConsent(PrivacyConsentStatus.DENIED)
+        runtime.updatePrivacyConsent(PrivacyConsentStatus.DENIED)
+        runtime.updatePrivacyConsent(PrivacyConsentStatus.GRANTED)
         runtime.initialize()
 
         assertEquals(
@@ -78,9 +89,9 @@ class UmengSdkRuntimeTest {
         val runtime = runtime(sdk).also { it.registerInitializationPlugin(plugin) }
 
         runtime.preInitialize()
-        runtime.updatePrivacyConsent(UmengPrivacyConsentStatus.DENIED)
-        runtime.updatePrivacyConsent(UmengPrivacyConsentStatus.UNKNOWN)
-        runtime.updatePrivacyConsent(UmengPrivacyConsentStatus.GRANTED)
+        runtime.updatePrivacyConsent(PrivacyConsentStatus.DENIED)
+        runtime.updatePrivacyConsent(PrivacyConsentStatus.UNKNOWN)
+        runtime.updatePrivacyConsent(PrivacyConsentStatus.GRANTED)
         runtime.initialize()
 
         assertEquals(
@@ -113,7 +124,7 @@ class UmengSdkRuntimeTest {
         )
         runtime.registerInitializationPlugin(RecordingPlugin(sdk.calls))
 
-        runtime.updatePrivacyConsent(UmengPrivacyConsentStatus.GRANTED)
+        runtime.updatePrivacyConsent(PrivacyConsentStatus.GRANTED)
         runtime.initialize()
 
         assertTrue(runtime.isInitialized())

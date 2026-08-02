@@ -1,6 +1,6 @@
 package com.tospery.suite.nav.umeng.ulink
 
-import com.tospery.suite.umeng.core.UmengSdkState
+import com.tospery.base.sdk.SdkInitializationState
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
@@ -87,7 +87,7 @@ class UmengUlinkClientTest {
         val client =
             UmengUlinkClient(
                 sdk = sdk,
-                sdkState = UmengSdkState { initialized },
+                sdkState = SdkInitializationState { initialized },
                 appScheme = "higit",
                 concatenationHost = "tospery.com",
             )
@@ -110,7 +110,7 @@ class UmengUlinkClientTest {
     ): UmengUlinkClient =
         UmengUlinkClient(
             sdk = sdk,
-            sdkState = UmengSdkState { initialized },
+            sdkState = SdkInitializationState { initialized },
             appScheme = "higit",
             concatenationHost = "tospery.com",
         )

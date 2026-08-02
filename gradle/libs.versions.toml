@@ -9,7 +9,7 @@ androidxJunit = "1.3.0"
 espresso = "3.7.0"
 coroutines = "1.11.0"
 retrofit = "3.0.0"
-okhttp = "5.4.0"
+okhttp = "5.3.2"
 moshi = "1.15.2"
 timber = "5.0.1"
 jsoup = "1.22.2"
@@ -24,6 +24,8 @@ umengUyumao = "1.1.4"
 umengApm = "2.0.8"
 umengShare = "7.3.7"
 umengLink = "2.0.0"
+aliyunEmasApm = "2.9.0"
+aliyunEmasApmPlugin = "3.3.0"
 
 [libraries]
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
@@ -71,9 +73,11 @@ umeng-uyumao = { group = "com.umeng.umsdk", name = "uyumao", version.ref = "umen
 umeng-apm = { group = "com.umeng.umsdk", name = "apm", version.ref = "umengApm" }
 umeng-share-core = { group = "com.umeng.umsdk", name = "share-core", version.ref = "umengShare" }
 umeng-link = { group = "com.umeng.umsdk", name = "link", version.ref = "umengLink" }
+aliyun-emas-apm-sdk = { group = "com.aliyun.ams", name = "alicloud-apm", version.ref = "aliyunEmasApm" }
 
 [plugins]
 android-library = { id = "com.android.library", version.ref = "agp" }
 jetbrains-kotlin-jvm = { id = "org.jetbrains.kotlin.jvm", version.ref = "kotlin" }
 kotlin-compose = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin" }
 vanniktech-maven-publish = { id = "com.vanniktech.maven.publish", version.ref = "vanniktechMavenPublish" }
+aliyun-emas-apm = { id = "com.aliyun.emas.apm", version.ref = "aliyunEmasApmPlugin" }

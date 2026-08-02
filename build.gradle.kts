@@ -168,6 +168,12 @@ val toolkitPublicationModules = mapOf(
         description =
             "Reusable Android app utilities and Compose components.",
     ),
+    ":suite-aliyun-emas-core" to MavenModuleMetadata(
+        artifactId = "suite-aliyun-emas-core",
+        displayName = "Tospery Suite Aliyun EMAS Core",
+        description =
+            "Privacy-aware Alibaba Cloud EMAS mobile monitoring adapter for Tospery Suite.",
+    ),
     ":suite-umeng-core" to MavenModuleMetadata(
         artifactId = "suite-umeng-core",
         displayName = "Tospery Suite Umeng Core",

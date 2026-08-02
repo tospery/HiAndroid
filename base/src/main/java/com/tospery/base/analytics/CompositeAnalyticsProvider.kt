@@ -1,5 +1,7 @@
 package com.tospery.base.analytics
 
+import com.tospery.base.sdk.PrivacyConsentStatus
+
 /**
  * 将统计操作分发到多个厂商 Provider。
  *
@@ -63,7 +65,7 @@ class CompositeAnalyticsProvider(
         providers.forEach(AnalyticsLifecycle::savePendingDataOnExit)
     }
 
-    override fun updatePrivacyConsent(status: AnalyticsConsentStatus) {
+    override fun updatePrivacyConsent(status: PrivacyConsentStatus) {
         providers.forEach { provider ->
             provider.updatePrivacyConsent(status)
         }

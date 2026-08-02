@@ -1,12 +1,11 @@
 package com.tospery.suite.analytics.umeng
 
-import com.tospery.base.analytics.AnalyticsConsentStatus
 import com.tospery.base.analytics.AnalyticsEvent
 import com.tospery.base.analytics.AnalyticsScreen
 import com.tospery.base.analytics.AnalyticsUser
 import com.tospery.base.analytics.AnalyticsValue
+import com.tospery.base.sdk.PrivacyConsentStatus
 import com.tospery.suite.umeng.core.UmengInitializationPlugin
-import com.tospery.suite.umeng.core.UmengPrivacyConsentStatus
 import com.tospery.suite.umeng.core.UmengSdkLifecycle
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -20,14 +19,14 @@ class UmengAnalyticsProviderTest {
         val provider = provider(RecordingUmengSdk(), lifecycle)
 
         provider.preInitialize()
-        provider.updatePrivacyConsent(AnalyticsConsentStatus.GRANTED)
+        provider.updatePrivacyConsent(PrivacyConsentStatus.GRANTED)
         provider.initialize()
         provider.initialize()
 
         assertEquals(
             listOf(
                 "pre_initialize",
-                "consent:${UmengPrivacyConsentStatus.GRANTED}",
+                "consent:${PrivacyConsentStatus.GRANTED}",
                 "initialize",
                 "initialize",
             ),
@@ -43,7 +42,7 @@ class UmengAnalyticsProviderTest {
         val collection = UmengCollectionConfiguration(collectInstalledApps = true)
         val provider = provider(sdk, lifecycle, collection)
 
-        provider.updatePrivacyConsent(AnalyticsConsentStatus.GRANTED)
+        provider.updatePrivacyConsent(PrivacyConsentStatus.GRANTED)
         provider.initialize()
         provider.initialize()
 
@@ -65,7 +64,7 @@ class UmengAnalyticsProviderTest {
 
         provider.identify(AnalyticsUser(id = "user-1"))
         provider.enterScreen(AnalyticsScreen("settings"))
-        provider.updatePrivacyConsent(AnalyticsConsentStatus.DENIED)
+        provider.updatePrivacyConsent(PrivacyConsentStatus.DENIED)
         provider.track(AnalyticsEvent("ignored_after_denial"))
 
         assertEquals(
@@ -80,7 +79,7 @@ class UmengAnalyticsProviderTest {
         )
         assertFalse(provider.isEnabled())
         assertEquals(
-            UmengPrivacyConsentStatus.DENIED,
+            PrivacyConsentStatus.DENIED,
             lifecycle.lastConsentStatus,
         )
     }
@@ -159,7 +158,7 @@ class UmengAnalyticsProviderTest {
         lifecycle: RecordingUmengSdkLifecycle,
     ): UmengAnalyticsProvider =
         provider(sdk, lifecycle).also {
-            it.updatePrivacyConsent(AnalyticsConsentStatus.GRANTED)
+            it.updatePrivacyConsent(PrivacyConsentStatus.GRANTED)
             it.initialize()
         }
 
@@ -184,7 +183,7 @@ private class RecordingUmengSdkLifecycle : UmengSdkLifecycle {
     private var initialized = false
     private var configured = false
     val calls = mutableListOf<String>()
-    var lastConsentStatus: UmengPrivacyConsentStatus = UmengPrivacyConsentStatus.UNKNOWN
+    var lastConsentStatus: PrivacyConsentStatus = PrivacyConsentStatus.UNKNOWN
 
     override fun isInitialized(): Boolean = initialized
 
@@ -198,7 +197,7 @@ private class RecordingUmengSdkLifecycle : UmengSdkLifecycle {
 
     override fun initialize() {
         calls += "initialize"
-        if (initialized || lastConsentStatus != UmengPrivacyConsentStatus.GRANTED) {
+        if (initialized || lastConsentStatus != PrivacyConsentStatus.GRANTED) {
             return
         }
         if (!configured) {
@@ -209,13 +208,13 @@ private class RecordingUmengSdkLifecycle : UmengSdkLifecycle {
         plugins.forEach(UmengInitializationPlugin::onInitialized)
     }
 
-    override fun updatePrivacyConsent(status: UmengPrivacyConsentStatus) {
+    override fun updatePrivacyConsent(status: PrivacyConsentStatus) {
         if (lastConsentStatus == status) {
             return
         }
         lastConsentStatus = status
         calls += "consent:$status"
-        if (status == UmengPrivacyConsentStatus.DENIED) {
+        if (status == PrivacyConsentStatus.DENIED) {
             plugins.forEach(UmengInitializationPlugin::onPrivacyConsentDenied)
             initialized = false
         }

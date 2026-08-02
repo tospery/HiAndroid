@@ -7,6 +7,7 @@ pluginManagement {
                 includeGroupByRegex("androidx.*")
             }
         }
+        maven("https://maven.aliyun.com/nexus/content/repositories/releases/")
         mavenCentral()
         gradlePluginPortal()
     }
@@ -16,6 +17,7 @@ dependencyResolutionManagement {
     repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
     repositories {
         google()
+        maven("https://maven.aliyun.com/nexus/content/repositories/releases/")
         mavenCentral()
     }
 }
@@ -28,6 +30,8 @@ include(":nav")
 include(":net")
 include(":net:retrofit")
 include(":suite")
+include(":suite-aliyun-emas-core")
+project(":suite-aliyun-emas-core").projectDir = file("suite/aliyun/emas/core")
 include(":suite-umeng-core")
 project(":suite-umeng-core").projectDir = file("suite/umeng/core")
 include(":suite-analytics-umeng")

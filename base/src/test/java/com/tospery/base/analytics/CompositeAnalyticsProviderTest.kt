@@ -1,5 +1,6 @@
 package com.tospery.base.analytics
 
+import com.tospery.base.sdk.PrivacyConsentStatus
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
@@ -64,8 +65,8 @@ class CompositeAnalyticsProviderTest {
             )
 
         provider.setEnabled(false)
-        provider.updatePrivacyConsent(AnalyticsConsentStatus.UNKNOWN)
-        provider.updatePrivacyConsent(AnalyticsConsentStatus.GRANTED)
+        provider.updatePrivacyConsent(PrivacyConsentStatus.UNKNOWN)
+        provider.updatePrivacyConsent(PrivacyConsentStatus.GRANTED)
         provider.preInitialize()
         provider.initialize()
         provider.savePendingDataOnExit()
@@ -77,8 +78,8 @@ class CompositeAnalyticsProviderTest {
             assertEquals(listOf(false), recordedProvider.enabledValues)
             assertEquals(
                 listOf(
-                    AnalyticsConsentStatus.UNKNOWN,
-                    AnalyticsConsentStatus.GRANTED,
+                    PrivacyConsentStatus.UNKNOWN,
+                    PrivacyConsentStatus.GRANTED,
                 ),
                 recordedProvider.consentStatuses,
             )
@@ -120,8 +121,8 @@ class CompositeAnalyticsProviderTest {
             )
 
         NoOpAnalyticsProvider.setEnabled(true)
-        NoOpAnalyticsProvider.updatePrivacyConsent(AnalyticsConsentStatus.UNKNOWN)
-        NoOpAnalyticsProvider.updatePrivacyConsent(AnalyticsConsentStatus.DENIED)
+        NoOpAnalyticsProvider.updatePrivacyConsent(PrivacyConsentStatus.UNKNOWN)
+        NoOpAnalyticsProvider.updatePrivacyConsent(PrivacyConsentStatus.DENIED)
         NoOpAnalyticsProvider.preInitialize()
         NoOpAnalyticsProvider.initialize()
         NoOpAnalyticsProvider.track(
@@ -158,7 +159,7 @@ class CompositeAnalyticsProviderTest {
         val userProperties = mutableListOf<AnalyticsProperties>()
         val screenEntries = mutableListOf<AnalyticsScreen>()
         val screenExits = mutableListOf<AnalyticsScreen>()
-        val consentStatuses = mutableListOf<AnalyticsConsentStatus>()
+        val consentStatuses = mutableListOf<PrivacyConsentStatus>()
 
         var preInitializeCalls: Int = 0
         var initializeCalls: Int = 0
@@ -218,7 +219,7 @@ class CompositeAnalyticsProviderTest {
             savePendingDataOnExitCalls++
         }
 
-        override fun updatePrivacyConsent(status: AnalyticsConsentStatus) {
+        override fun updatePrivacyConsent(status: PrivacyConsentStatus) {
             consentStatuses += status
         }
     }

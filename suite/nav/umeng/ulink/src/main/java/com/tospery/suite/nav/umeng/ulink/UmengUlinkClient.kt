@@ -2,7 +2,7 @@ package com.tospery.suite.nav.umeng.ulink
 
 import android.content.Context
 import android.net.Uri
-import com.tospery.suite.umeng.core.UmengSdkState
+import com.tospery.base.sdk.SdkInitializationState
 import com.umeng.umlink.MobclickLink
 import com.umeng.umlink.UMLinkListener
 import java.net.URI
@@ -41,7 +41,7 @@ enum class UmengUlinkWakeupUrlClassification {
  */
 class UmengUlinkClient internal constructor(
     private val sdk: UmengUlinkSdk,
-    private val sdkState: UmengSdkState,
+    private val sdkState: SdkInitializationState,
     appScheme: String,
     concatenationHost: String,
 ) {
@@ -169,7 +169,7 @@ class UmengUlinkClient internal constructor(
     companion object {
         fun create(
             context: Context,
-            sdkState: UmengSdkState,
+            sdkState: SdkInitializationState,
             appScheme: String,
             concatenationHost: String,
         ): UmengUlinkClient =
