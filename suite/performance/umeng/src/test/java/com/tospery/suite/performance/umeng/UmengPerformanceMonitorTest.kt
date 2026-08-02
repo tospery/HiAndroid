@@ -248,6 +248,24 @@ class UmengPerformanceMonitorTest {
     }
 
     @Test
+    fun privacyDenialBeforeSdkConfigurationDoesNotPreventLaterConsent() {
+        val sdk = RecordingUmengPerformanceSdk()
+        val monitor =
+            UmengPerformanceMonitor(
+                configuration = UmengPerformanceConfiguration(),
+                sdk = sdk,
+            )
+
+        monitor.onPrivacyConsentDenied()
+        monitor.configureBeforeInitialization()
+        monitor.onInitialized()
+
+        assertTrue(monitor.isEnabled())
+        assertEquals(1, sdk.configureCount)
+        assertEquals(0, sdk.disableCount)
+    }
+
+    @Test
     fun sdkFailuresDoNotEscapeAdapterBoundary() {
         val configurationFailureSdk =
             RecordingUmengPerformanceSdk(

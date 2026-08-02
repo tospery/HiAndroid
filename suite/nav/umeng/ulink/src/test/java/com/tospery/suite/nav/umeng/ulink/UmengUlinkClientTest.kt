@@ -1,5 +1,6 @@
 package com.tospery.suite.nav.umeng.ulink
 
+import com.tospery.suite.umeng.core.UmengSdkState
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
@@ -62,9 +63,54 @@ class UmengUlinkClientTest {
         assertEquals(false, sdk.clipboardEnabled)
     }
 
-    private fun client(sdk: RecordingSdk): UmengUlinkClient =
+    @Test
+    fun sdkCallsFailFastBeforeSharedRuntimeInitialization() {
+        val sdk = RecordingSdk()
+        val client = client(sdk, initialized = false)
+        val results = mutableListOf<UmengUlinkResult>()
+
+        client.handleWakeupUrl(
+            "higit://tospery.com/ulink?_sdk=umeng",
+            results::add,
+        )
+        client.requestDeferredLink(onResult = results::add)
+
+        assertTrue(results.all { it is UmengUlinkResult.Failed })
+        assertEquals(null, sdk.handleCallback)
+        assertEquals(null, sdk.installCallback)
+    }
+
+    @Test
+    fun deferredCallbackDoesNotReenterSdkAfterRuntimeBecomesUnavailable() {
+        val sdk = RecordingSdk()
+        var initialized = true
+        val client =
+            UmengUlinkClient(
+                sdk = sdk,
+                sdkState = UmengSdkState { initialized },
+                appScheme = "higit",
+                concatenationHost = "tospery.com",
+            )
+        val results = mutableListOf<UmengUlinkResult>()
+
+        client.requestDeferredLink(onResult = results::add)
+        initialized = false
+        sdk.installCallback?.onInstall(
+            parameters = emptyMap(),
+            wakeupUrl = "higit://tospery.com/ulink?_sdk=umeng",
+        )
+
+        assertTrue(results.single() is UmengUlinkResult.Failed)
+        assertEquals(null, sdk.handleCallback)
+    }
+
+    private fun client(
+        sdk: RecordingSdk,
+        initialized: Boolean = true,
+    ): UmengUlinkClient =
         UmengUlinkClient(
             sdk = sdk,
+            sdkState = UmengSdkState { initialized },
             appScheme = "higit",
             concatenationHost = "tospery.com",
         )

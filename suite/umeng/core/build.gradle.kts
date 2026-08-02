@@ -3,7 +3,7 @@ plugins {
 }
 
 android {
-    namespace = "com.tospery.suite.share.umeng"
+    namespace = "com.tospery.suite.umeng.core"
     compileSdk = 37
 
     defaultConfig {
@@ -18,12 +18,10 @@ android {
 }
 
 dependencies {
-    api(project(":base"))
-    api(project(":suite-umeng-core"))
+    implementation(project(":base"))
 
     implementation(libs.umeng.common)
     implementation(libs.umeng.asms)
-    implementation(libs.umeng.share.core)
 
     testImplementation(libs.junit)
 }

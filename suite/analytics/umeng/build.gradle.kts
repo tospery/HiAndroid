@@ -19,9 +19,9 @@ android {
 
 dependencies {
     api(project(":base"))
+    api(project(":suite-umeng-core"))
 
     implementation(libs.umeng.common)
-    implementation(libs.umeng.asms)
     implementation(libs.umeng.uyumao)
 
     testImplementation(libs.junit)

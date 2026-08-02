@@ -168,6 +168,12 @@ val toolkitPublicationModules = mapOf(
         description =
             "Reusable Android app utilities and Compose components.",
     ),
+    ":suite-umeng-core" to MavenModuleMetadata(
+        artifactId = "suite-umeng-core",
+        displayName = "Tospery Suite Umeng Core",
+        description =
+            "Shared privacy-aware lifecycle runtime for Umeng Android products.",
+    ),
     ":suite-analytics-umeng" to MavenModuleMetadata(
         artifactId = "suite-analytics-umeng",
         displayName = "Tospery Suite Analytics Umeng",

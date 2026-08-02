@@ -60,6 +60,7 @@ class UmengShareProviderTest {
             PlatformAwareUmengShareSdk(
                 primarySdk = primarySdk,
                 fallbackSdk = fallbackSdk,
+                isUmengSdkInitialized = { true },
                 isPlatformModuleAvailable = { false },
                 onExecutionPathSelected = { channel, path ->
                     selectedPaths += channel to path
@@ -92,6 +93,7 @@ class UmengShareProviderTest {
             PlatformAwareUmengShareSdk(
                 primarySdk = primarySdk,
                 fallbackSdk = fallbackSdk,
+                isUmengSdkInitialized = { true },
                 isPlatformModuleAvailable = { true },
                 onExecutionPathSelected = { channel, path ->
                     selectedPaths += channel to path
@@ -110,6 +112,34 @@ class UmengShareProviderTest {
             listOf(
                 ShareChannel.Email to UmengShareExecutionPath.UMENG_PLATFORM_HANDLER,
             ),
+            selectedPaths,
+        )
+    }
+
+    @Test
+    fun uninitializedCommonSdkUsesAndroidFallbackEvenWhenPlatformModuleExists() {
+        val primarySdk = RecordingSdk()
+        val fallbackSdk = RecordingSdk()
+        val selectedPaths = mutableListOf<UmengShareExecutionPath>()
+        val sdk =
+            PlatformAwareUmengShareSdk(
+                primarySdk = primarySdk,
+                fallbackSdk = fallbackSdk,
+                isUmengSdkInitialized = { false },
+                isPlatformModuleAvailable = { true },
+                onExecutionPathSelected = { _, path -> selectedPaths += path },
+            )
+
+        sdk.share(
+            channel = ShareChannel.Email,
+            content = request(ShareChannel.Email).content,
+            onResult = {},
+        )
+
+        assertEquals(null, primarySdk.channel)
+        assertEquals(ShareChannel.Email, fallbackSdk.channel)
+        assertEquals(
+            listOf(UmengShareExecutionPath.ANDROID_SYSTEM_INTENT_FALLBACK),
             selectedPaths,
         )
     }

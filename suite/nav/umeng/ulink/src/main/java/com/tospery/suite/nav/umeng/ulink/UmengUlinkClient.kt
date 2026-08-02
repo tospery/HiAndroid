@@ -2,6 +2,7 @@ package com.tospery.suite.nav.umeng.ulink
 
 import android.content.Context
 import android.net.Uri
+import com.tospery.suite.umeng.core.UmengSdkState
 import com.umeng.umlink.MobclickLink
 import com.umeng.umlink.UMLinkListener
 import java.net.URI
@@ -40,6 +41,7 @@ enum class UmengUlinkWakeupUrlClassification {
  */
 class UmengUlinkClient internal constructor(
     private val sdk: UmengUlinkSdk,
+    private val sdkState: UmengSdkState,
     appScheme: String,
     concatenationHost: String,
 ) {
@@ -99,6 +101,10 @@ class UmengUlinkClient internal constructor(
         url: String,
         onResult: (UmengUlinkResult) -> Unit,
     ) {
+        if (!sdkState.isInitialized()) {
+            onResult(UmengUlinkResult.Failed(SDK_NOT_INITIALIZED_MESSAGE))
+            return
+        }
         sdk.handle(url, listener(onResult = onResult))
     }
 
@@ -106,6 +112,10 @@ class UmengUlinkClient internal constructor(
         clipboardEnabled: Boolean = false,
         onResult: (UmengUlinkResult) -> Unit,
     ) {
+        if (!sdkState.isInitialized()) {
+            onResult(UmengUlinkResult.Failed(SDK_NOT_INITIALIZED_MESSAGE))
+            return
+        }
         sdk.requestInstallParameters(
             clipboardEnabled = clipboardEnabled,
             listener = listener(onResult = onResult),
@@ -137,6 +147,10 @@ class UmengUlinkClient internal constructor(
                     onResult(UmengUlinkResult.NoDeferredLink(parameters.toMap()))
                     return
                 }
+                if (!sdkState.isInitialized()) {
+                    onResult(UmengUlinkResult.Failed(SDK_NOT_INITIALIZED_MESSAGE))
+                    return
+                }
 
                 sdk.handle(
                     wakeupUrl,
@@ -155,17 +169,21 @@ class UmengUlinkClient internal constructor(
     companion object {
         fun create(
             context: Context,
+            sdkState: UmengSdkState,
             appScheme: String,
             concatenationHost: String,
         ): UmengUlinkClient =
             UmengUlinkClient(
                 sdk = AndroidUmengUlinkSdk(context),
+                sdkState = sdkState,
                 appScheme = appScheme,
                 concatenationHost = concatenationHost,
             )
 
         private const val UMENG_SDK_QUERY_PARAMETER = "_sdk"
         private const val UMENG_LINK_ID_QUERY_PARAMETER = "linkid"
+        private const val SDK_NOT_INITIALIZED_MESSAGE =
+            "Umeng common SDK is not initialized."
         private val APP_SCHEME_PATTERN = Regex("[a-z][a-z0-9+.-]{1,31}")
         private val HOST_PATTERN =
             Regex("[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?(?:\\.[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?)+")

@@ -19,7 +19,7 @@ android {
 
 dependencies {
     api(project(":base"))
-    api(project(":suite-analytics-umeng"))
+    api(project(":suite-umeng-core"))
 
     implementation(libs.umeng.apm)
 

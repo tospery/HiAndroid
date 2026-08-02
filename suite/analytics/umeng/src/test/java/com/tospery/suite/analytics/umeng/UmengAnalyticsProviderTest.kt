@@ -5,6 +5,9 @@ import com.tospery.base.analytics.AnalyticsEvent
 import com.tospery.base.analytics.AnalyticsScreen
 import com.tospery.base.analytics.AnalyticsUser
 import com.tospery.base.analytics.AnalyticsValue
+import com.tospery.suite.umeng.core.UmengInitializationPlugin
+import com.tospery.suite.umeng.core.UmengPrivacyConsentStatus
+import com.tospery.suite.umeng.core.UmengSdkLifecycle
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
@@ -12,106 +15,53 @@ import org.junit.Test
 
 class UmengAnalyticsProviderTest {
     @Test
-    fun preInitializationWaitsForConsentAndRemainsIdempotent() {
-        val sdk = RecordingUmengSdk()
-        val collection = UmengCollectionConfiguration(collectInstalledApps = true)
-        val provider = provider(sdk = sdk, collection = collection, debugLoggingEnabled = true)
+    fun lifecycleMethodsDelegateToSharedRuntime() {
+        val lifecycle = RecordingUmengSdkLifecycle()
+        val provider = provider(RecordingUmengSdk(), lifecycle)
 
         provider.preInitialize()
-        provider.preInitialize()
-
-        assertTrue(sdk.calls.isEmpty())
-
         provider.updatePrivacyConsent(AnalyticsConsentStatus.GRANTED)
-        provider.preInitialize()
+        provider.initialize()
+        provider.initialize()
 
         assertEquals(
             listOf(
-                "debug:true",
+                "pre_initialize",
+                "consent:${UmengPrivacyConsentStatus.GRANTED}",
+                "initialize",
+                "initialize",
+            ),
+            lifecycle.calls,
+        )
+        assertTrue(provider.isEnabled())
+    }
+
+    @Test
+    fun analyticsConfigurationRunsAsSharedInitializationPluginOnce() {
+        val sdk = RecordingUmengSdk()
+        val lifecycle = RecordingUmengSdkLifecycle()
+        val collection = UmengCollectionConfiguration(collectInstalledApps = true)
+        val provider = provider(sdk, lifecycle, collection)
+
+        provider.updatePrivacyConsent(AnalyticsConsentStatus.GRANTED)
+        provider.initialize()
+        provider.initialize()
+
+        assertEquals(
+            listOf(
                 "page_mode:manual",
                 "collection:$collection",
-                "pre_init:$APP_KEY:$CHANNEL",
-                "consent:true",
             ),
             sdk.calls,
         )
-    }
-
-    @Test
-    fun initializationRequiresGrantedConsentAndIsIdempotent() {
-        val sdk = RecordingUmengSdk()
-        val provider = provider(sdk)
-
-        provider.initialize()
-        assertFalse(provider.isEnabled())
-
-        provider.updatePrivacyConsent(AnalyticsConsentStatus.GRANTED)
-        provider.initialize()
-        provider.initialize()
-
         assertTrue(provider.isEnabled())
-        assertEquals(1, sdk.calls.count { it.startsWith("pre_init:") })
-        assertEquals(1, sdk.calls.count { it.startsWith("init:") })
-        assertEquals(1, sdk.calls.count { it == "consent:true" })
     }
 
     @Test
-    fun initializationPluginsRunAroundSharedSdkInitializationOnce() {
+    fun denialAfterInitializationClosesScreensAndDisablesAnalyticsOnly() {
         val sdk = RecordingUmengSdk()
-        val plugin = RecordingUmengInitializationPlugin(sdk.calls)
-        val provider =
-            provider(
-                sdk = sdk,
-                initializationPlugins = listOf(plugin),
-            )
-
-        provider.preInitialize()
-        provider.updatePrivacyConsent(AnalyticsConsentStatus.GRANTED)
-        provider.initialize()
-        provider.initialize()
-
-        assertEquals(
-            listOf(
-                "debug:false",
-                "page_mode:manual",
-                "collection:${UmengCollectionConfiguration()}",
-                "pre_init:$APP_KEY:$CHANNEL",
-                "consent:true",
-                "plugin_configure",
-                "init:$APP_KEY:$CHANNEL",
-                "plugin_initialized",
-            ),
-            sdk.calls,
-        )
-    }
-
-    @Test
-    fun privacyDenialIsForwardedToPluginsOnce() {
-        val sdk = RecordingUmengSdk()
-        val plugin = RecordingUmengInitializationPlugin(sdk.calls)
-        val provider =
-            provider(
-                sdk = sdk,
-                initializationPlugins = listOf(plugin),
-            )
-
-        provider.updatePrivacyConsent(AnalyticsConsentStatus.DENIED)
-        provider.updatePrivacyConsent(AnalyticsConsentStatus.DENIED)
-
-        assertEquals(
-            listOf(
-                "plugin_denied",
-                "consent:false",
-            ),
-            sdk.calls,
-        )
-        assertFalse(provider.isEnabled())
-    }
-
-    @Test
-    fun denialAfterInitializationClosesScreensAndDisablesSdk() {
-        val sdk = RecordingUmengSdk()
-        val provider = initializedProvider(sdk)
+        val lifecycle = RecordingUmengSdkLifecycle()
+        val provider = initializedProvider(sdk, lifecycle)
 
         provider.identify(AnalyticsUser(id = "user-1"))
         provider.enterScreen(AnalyticsScreen("settings"))
@@ -124,18 +74,21 @@ class UmengAnalyticsProviderTest {
                 "screen_enter:settings",
                 "screen_exit:settings",
                 "sign_out",
-                "consent:false",
                 "disable",
             ),
-            sdk.calls.takeLast(6),
+            sdk.calls.takeLast(5),
         )
         assertFalse(provider.isEnabled())
+        assertEquals(
+            UmengPrivacyConsentStatus.DENIED,
+            lifecycle.lastConsentStatus,
+        )
     }
 
     @Test
     fun eventsAndIdentifiedUserPropertiesUseSupportedValueTypes() {
         val sdk = RecordingUmengSdk()
-        val provider = initializedProvider(sdk)
+        val provider = initializedProvider(sdk, RecordingUmengSdkLifecycle())
 
         provider.track(
             AnalyticsEvent(
@@ -180,7 +133,7 @@ class UmengAnalyticsProviderTest {
     @Test
     fun disablingAndExitSavingCloseOnlyActiveScreens() {
         val sdk = RecordingUmengSdk()
-        val provider = initializedProvider(sdk)
+        val provider = initializedProvider(sdk, RecordingUmengSdkLifecycle())
 
         provider.enterScreen(AnalyticsScreen("first"))
         provider.enterScreen(AnalyticsScreen("second"))
@@ -201,33 +154,71 @@ class UmengAnalyticsProviderTest {
         assertFalse(provider.isEnabled())
     }
 
-    private fun initializedProvider(sdk: RecordingUmengSdk): UmengAnalyticsProvider =
-        provider(sdk).also {
+    private fun initializedProvider(
+        sdk: RecordingUmengSdk,
+        lifecycle: RecordingUmengSdkLifecycle,
+    ): UmengAnalyticsProvider =
+        provider(sdk, lifecycle).also {
             it.updatePrivacyConsent(AnalyticsConsentStatus.GRANTED)
             it.initialize()
         }
 
     private fun provider(
         sdk: RecordingUmengSdk,
+        lifecycle: RecordingUmengSdkLifecycle,
         collection: UmengCollectionConfiguration = UmengCollectionConfiguration(),
-        debugLoggingEnabled: Boolean = false,
-        initializationPlugins: List<UmengInitializationPlugin> = emptyList(),
-    ): UmengAnalyticsProvider =
-        UmengAnalyticsProvider(
-            configuration =
-                UmengAnalyticsConfiguration(
-                    appKey = APP_KEY,
-                    channel = CHANNEL,
-                    collection = collection,
-                    debugLoggingEnabled = debugLoggingEnabled,
-                ),
-            sdk = sdk,
-            initializationPlugins = initializationPlugins,
-        )
+    ): UmengAnalyticsProvider {
+        val provider =
+            UmengAnalyticsProvider(
+                configuration = UmengAnalyticsConfiguration(collection = collection),
+                sdk = sdk,
+                sdkLifecycle = lifecycle,
+            )
+        lifecycle.registerInitializationPlugin(provider)
+        return provider
+    }
+}
 
-    private companion object {
-        const val APP_KEY = "123456789012345678901234"
-        const val CHANNEL = "unit_test"
+private class RecordingUmengSdkLifecycle : UmengSdkLifecycle {
+    private val plugins = mutableListOf<UmengInitializationPlugin>()
+    private var initialized = false
+    private var configured = false
+    val calls = mutableListOf<String>()
+    var lastConsentStatus: UmengPrivacyConsentStatus = UmengPrivacyConsentStatus.UNKNOWN
+
+    override fun isInitialized(): Boolean = initialized
+
+    override fun registerInitializationPlugin(plugin: UmengInitializationPlugin) {
+        plugins += plugin
+    }
+
+    override fun preInitialize() {
+        calls += "pre_initialize"
+    }
+
+    override fun initialize() {
+        calls += "initialize"
+        if (initialized || lastConsentStatus != UmengPrivacyConsentStatus.GRANTED) {
+            return
+        }
+        if (!configured) {
+            plugins.forEach(UmengInitializationPlugin::configureBeforeInitialization)
+            configured = true
+        }
+        initialized = true
+        plugins.forEach(UmengInitializationPlugin::onInitialized)
+    }
+
+    override fun updatePrivacyConsent(status: UmengPrivacyConsentStatus) {
+        if (lastConsentStatus == status) {
+            return
+        }
+        lastConsentStatus = status
+        calls += "consent:$status"
+        if (status == UmengPrivacyConsentStatus.DENIED) {
+            plugins.forEach(UmengInitializationPlugin::onPrivacyConsentDenied)
+            initialized = false
+        }
     }
 }
 
@@ -236,28 +227,12 @@ private class RecordingUmengSdk : UmengSdk {
     val events = mutableListOf<Pair<String, Map<String, Any>>>()
     val userProperties = mutableListOf<Pair<String, Any>>()
 
-    override fun setDebugLogging(enabled: Boolean) {
-        calls += "debug:$enabled"
-    }
-
     override fun setManualPageCollection() {
         calls += "page_mode:manual"
     }
 
     override fun applyCollectionConfiguration(configuration: UmengCollectionConfiguration) {
         calls += "collection:$configuration"
-    }
-
-    override fun preInitialize(appKey: String, channel: String) {
-        calls += "pre_init:$appKey:$channel"
-    }
-
-    override fun initialize(appKey: String, channel: String) {
-        calls += "init:$appKey:$channel"
-    }
-
-    override fun submitPrivacyConsent(granted: Boolean) {
-        calls += "consent:$granted"
     }
 
     override fun disableAnalytics() {
@@ -292,21 +267,5 @@ private class RecordingUmengSdk : UmengSdk {
 
     override fun savePendingDataOnExit() {
         calls += "save_exit"
-    }
-}
-
-private class RecordingUmengInitializationPlugin(
-    private val calls: MutableList<String>,
-) : UmengInitializationPlugin {
-    override fun configureBeforeInitialization() {
-        calls += "plugin_configure"
-    }
-
-    override fun onInitialized() {
-        calls += "plugin_initialized"
-    }
-
-    override fun onPrivacyConsentDenied() {
-        calls += "plugin_denied"
     }
 }

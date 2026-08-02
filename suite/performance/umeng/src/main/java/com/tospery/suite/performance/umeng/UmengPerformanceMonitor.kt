@@ -13,7 +13,7 @@ import com.tospery.base.performance.PerformanceFailure
 import com.tospery.base.performance.PerformanceIssue
 import com.tospery.base.performance.PerformanceMonitor
 import com.tospery.buildmetadata.module_suite_performance_umeng.ModuleMetadata
-import com.tospery.suite.analytics.umeng.UmengInitializationPlugin
+import com.tospery.suite.umeng.core.UmengInitializationPlugin
 import com.umeng.umcrash.UMCrash
 import com.umeng.umcrash.customlog.UAPMCustomLog
 import java.nio.ByteBuffer
@@ -166,7 +166,7 @@ class UmengPerformanceMonitor internal constructor(
         val wasConfigured = configured
         val wasInitialized = initialized
         initialized = false
-        permanentlyDisabled = true
+        permanentlyDisabled = wasConfigured
         registeredContextNames.clear()
 
         if (wasConfigured) {

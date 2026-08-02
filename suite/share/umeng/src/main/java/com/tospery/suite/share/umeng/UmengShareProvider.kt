@@ -9,6 +9,7 @@ import com.tospery.base.share.ShareContent
 import com.tospery.base.share.ShareProvider
 import com.tospery.base.share.ShareRequest
 import com.tospery.base.share.ShareResult
+import com.tospery.suite.umeng.core.UmengSdkState
 import com.umeng.socialize.ShareAction
 import com.umeng.socialize.UMShareAPI
 import com.umeng.socialize.UMShareListener
@@ -23,7 +24,7 @@ enum class UmengShareExecutionPath {
     ANDROID_SYSTEM_INTENT_FALLBACK,
 }
 
-/** U-Share adapter. The host must initialize the Umeng common SDK after privacy consent. */
+/** U-Share adapter. It never calls U-Share before the shared Umeng runtime is ready. */
 class UmengShareProvider internal constructor(
     private val sdk: UmengShareSdk,
     override val supportedChannels: Set<ShareChannel> = defaultSupportedChannels,
@@ -47,6 +48,7 @@ class UmengShareProvider internal constructor(
     companion object {
         fun create(
             activity: Activity,
+            sdkState: UmengSdkState,
             enabledChannels: Set<ShareChannel> = defaultSupportedChannels,
             onExecutionPathSelected: (ShareChannel, UmengShareExecutionPath) -> Unit = { _, _ -> },
         ): UmengShareProvider {
@@ -56,6 +58,7 @@ class UmengShareProvider internal constructor(
                     PlatformAwareUmengShareSdk(
                         primarySdk = AndroidUmengShareSdk(activity),
                         fallbackSdk = fallbackSdk,
+                        isUmengSdkInitialized = sdkState::isInitialized,
                         isPlatformModuleAvailable = ::isUmengPlatformModuleAvailable,
                         onExecutionPathSelected = onExecutionPathSelected,
                     ),
@@ -68,16 +71,24 @@ class UmengShareProvider internal constructor(
         }
 
         fun onActivityResult(
+            sdkState: UmengSdkState,
             activity: Activity,
             requestCode: Int,
             resultCode: Int,
             data: Intent?,
         ) {
-            UMShareAPI.get(activity).onActivityResult(requestCode, resultCode, data)
+            if (sdkState.isInitialized()) {
+                UMShareAPI.get(activity).onActivityResult(requestCode, resultCode, data)
+            }
         }
 
-        fun release(activity: Activity) {
-            UMShareAPI.get(activity).release()
+        fun release(
+            sdkState: UmengSdkState,
+            activity: Activity,
+        ) {
+            if (sdkState.isInitialized()) {
+                UMShareAPI.get(activity).release()
+            }
         }
     }
 }
@@ -94,6 +105,7 @@ internal fun interface UmengShareSdk {
 internal class PlatformAwareUmengShareSdk(
     private val primarySdk: UmengShareSdk,
     private val fallbackSdk: UmengShareSdk,
+    private val isUmengSdkInitialized: () -> Boolean,
     private val isPlatformModuleAvailable: (ShareChannel) -> Boolean,
     private val onExecutionPathSelected: (ShareChannel, UmengShareExecutionPath) -> Unit = { _, _ -> },
 ) : UmengShareSdk {
@@ -102,7 +114,8 @@ internal class PlatformAwareUmengShareSdk(
         content: ShareContent,
         onResult: (ShareResult) -> Unit,
     ) {
-        val usesUmengPlatform = isPlatformModuleAvailable(channel)
+        val usesUmengPlatform =
+            isUmengSdkInitialized() && isPlatformModuleAvailable(channel)
         val executionPath =
             if (usesUmengPlatform) {
                 UmengShareExecutionPath.UMENG_PLATFORM_HANDLER
