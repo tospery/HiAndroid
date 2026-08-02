@@ -1,7 +1,9 @@
 package com.tospery.suite.share.umeng
 
 import android.app.Activity
+import android.content.ActivityNotFoundException
 import android.content.Intent
+import android.net.Uri
 import com.tospery.base.share.ShareChannel
 import com.tospery.base.share.ShareContent
 import com.tospery.base.share.ShareProvider
@@ -37,7 +39,13 @@ class UmengShareProvider internal constructor(
 
     companion object {
         fun create(activity: Activity): UmengShareProvider =
-            UmengShareProvider(AndroidUmengShareSdk(activity))
+            UmengShareProvider(
+                PlatformAwareUmengShareSdk(
+                    primarySdk = AndroidUmengShareSdk(activity),
+                    fallbackSdk = AndroidSystemShareSdk(activity),
+                    isPlatformModuleAvailable = ::isUmengPlatformModuleAvailable,
+                ),
+            )
 
         fun onActivityResult(
             activity: Activity,
@@ -60,6 +68,27 @@ internal fun interface UmengShareSdk {
         content: ShareContent,
         onResult: (ShareResult) -> Unit,
     )
+}
+
+/** Uses U-Share when its offline platform module exists, otherwise delegates to Android. */
+internal class PlatformAwareUmengShareSdk(
+    private val primarySdk: UmengShareSdk,
+    private val fallbackSdk: UmengShareSdk,
+    private val isPlatformModuleAvailable: (ShareChannel) -> Boolean,
+) : UmengShareSdk {
+    override fun share(
+        channel: ShareChannel,
+        content: ShareContent,
+        onResult: (ShareResult) -> Unit,
+    ) {
+        val sdk =
+            if (isPlatformModuleAvailable(channel)) {
+                primarySdk
+            } else {
+                fallbackSdk
+            }
+        sdk.share(channel, content, onResult)
+    }
 }
 
 private class AndroidUmengShareSdk(
@@ -105,4 +134,68 @@ private class AndroidUmengShareSdk(
             ShareChannel.Email -> SHARE_MEDIA.EMAIL
             else -> throw UnsupportedOperationException(value)
         }
+}
+
+private class AndroidSystemShareSdk(
+    private val activity: Activity,
+) : UmengShareSdk {
+    override fun share(
+        channel: ShareChannel,
+        content: ShareContent,
+        onResult: (ShareResult) -> Unit,
+    ) {
+        val intent =
+            when (channel) {
+                ShareChannel.ShortMessage ->
+                    Intent(Intent.ACTION_SENDTO, Uri.parse(SMS_URI)).apply {
+                        putExtra(SMS_BODY_EXTRA, content.textWithUrl)
+                    }
+
+                ShareChannel.Email ->
+                    Intent(Intent.ACTION_SENDTO, Uri.parse(EMAIL_URI)).apply {
+                        putExtra(Intent.EXTRA_SUBJECT, content.title)
+                        putExtra(Intent.EXTRA_TEXT, content.textWithUrl)
+                    }
+
+                else -> {
+                    onResult(
+                        ShareResult.Failed(
+                            UnsupportedOperationException(channel.value),
+                        ),
+                    )
+                    return
+                }
+            }
+
+        if (intent.resolveActivity(activity.packageManager) == null) {
+            onResult(
+                ShareResult.Failed(
+                    ActivityNotFoundException("No Android handler for ${channel.value}."),
+                ),
+            )
+            return
+        }
+
+        runCatching { activity.startActivity(intent) }
+            .fold(
+                onSuccess = { onResult(ShareResult.Started) },
+                onFailure = { throwable -> onResult(ShareResult.Failed(throwable)) },
+            )
+    }
+
+    companion object {
+        private const val SMS_URI = "smsto:"
+        private const val EMAIL_URI = "mailto:"
+        private const val SMS_BODY_EXTRA = "sms_body"
+    }
+}
+
+private fun isUmengPlatformModuleAvailable(channel: ShareChannel): Boolean {
+    val handlerClassName =
+        when (channel) {
+            ShareChannel.ShortMessage -> "com.umeng.socialize.handler.SmsHandler"
+            ShareChannel.Email -> "com.umeng.socialize.handler.EmailHandler"
+            else -> return false
+        }
+    return runCatching { Class.forName(handlerClassName) }.isSuccess
 }

@@ -34,6 +34,48 @@ class UmengShareProviderTest {
         assertTrue(results.single() is ShareResult.Failed)
     }
 
+    @Test
+    fun missingOfflinePlatformModuleUsesAndroidFallback() {
+        val primarySdk = RecordingSdk()
+        val fallbackSdk = RecordingSdk()
+        val sdk =
+            PlatformAwareUmengShareSdk(
+                primarySdk = primarySdk,
+                fallbackSdk = fallbackSdk,
+                isPlatformModuleAvailable = { false },
+            )
+
+        sdk.share(
+            channel = ShareChannel.ShortMessage,
+            content = request(ShareChannel.ShortMessage).content,
+            onResult = {},
+        )
+
+        assertEquals(null, primarySdk.channel)
+        assertEquals(ShareChannel.ShortMessage, fallbackSdk.channel)
+    }
+
+    @Test
+    fun installedOfflinePlatformModuleUsesUShare() {
+        val primarySdk = RecordingSdk()
+        val fallbackSdk = RecordingSdk()
+        val sdk =
+            PlatformAwareUmengShareSdk(
+                primarySdk = primarySdk,
+                fallbackSdk = fallbackSdk,
+                isPlatformModuleAvailable = { true },
+            )
+
+        sdk.share(
+            channel = ShareChannel.Email,
+            content = request(ShareChannel.Email).content,
+            onResult = {},
+        )
+
+        assertEquals(ShareChannel.Email, primarySdk.channel)
+        assertEquals(null, fallbackSdk.channel)
+    }
+
     private fun request(channel: ShareChannel): ShareRequest =
         ShareRequest(
             channel = channel,
