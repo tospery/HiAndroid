@@ -58,6 +58,10 @@ secring.gpg
 # Gradle Wrapper JAR 是可复现构建的必要文件，必须提交。
 !gradle/wrapper/gradle-wrapper.jar
 
+# 友盟 SMS/Email 尚未提供 Maven 依赖，按官方离线集成要求随可选模块分发。
+!suite/share/umeng/sms/libs/umeng-share-sms-7.3.7.jar
+!suite/share/umeng/email/libs/umeng-share-email-7.3.7.jar
+
 # Python 校验脚本的本地字节码缓存。
 __pycache__/
 *.py[cod]
