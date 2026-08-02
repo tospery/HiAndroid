@@ -1,7 +1,6 @@
 package com.tospery.suite.aliyun.emas.core
 
 import com.tospery.base.logging.LogAttribute
-import com.tospery.base.logging.LogTags
 import com.tospery.base.logging.error
 import com.tospery.base.logging.warning
 import com.tospery.base.performance.PerformanceContextAttribute
@@ -9,16 +8,9 @@ import com.tospery.base.performance.PerformanceDiagnosticLog
 import com.tospery.base.performance.PerformanceFailure
 import com.tospery.base.performance.PerformanceIssue
 import com.tospery.base.performance.PerformanceMonitor
-import com.tospery.buildmetadata.module_suite_aliyun_emas_core.ModuleMetadata
 import java.nio.ByteBuffer
 import java.nio.charset.CodingErrorAction
 import java.nio.charset.StandardCharsets
-
-private val aliyunEmasPerformanceLogTag =
-    LogTags.child(
-        parent = LogTags.moduleTag(ModuleMetadata.path),
-        segment = "performance",
-    )
 
 /** 将厂商无关的性能监控端口适配到阿里云 EMAS 移动监控。 */
 class AliyunEmasPerformanceMonitor internal constructor(
@@ -44,7 +36,7 @@ class AliyunEmasPerformanceMonitor internal constructor(
             )
         if (issue.diagnostics.includeSystemLog) {
             warning(
-                tag = aliyunEmasPerformanceLogTag,
+                tag = AliyunEmasLogTags.performanceAnalysis,
                 attributes = attributes,
             ) {
                 "阿里云 EMAS 自定义异常不提供按次附加系统日志的接口。"
@@ -52,7 +44,7 @@ class AliyunEmasPerformanceMonitor internal constructor(
         }
         if (issue.diagnostics.includeAllThreadStacks) {
             warning(
-                tag = aliyunEmasPerformanceLogTag,
+                tag = AliyunEmasLogTags.performanceAnalysis,
                 attributes = attributes,
             ) {
                 "阿里云 EMAS 自定义异常只接收当前异常的堆栈。"
@@ -148,7 +140,7 @@ class AliyunEmasPerformanceMonitor internal constructor(
             true
         } catch (throwable: Throwable) {
             error(
-                tag = aliyunEmasPerformanceLogTag,
+                tag = AliyunEmasLogTags.performanceAnalysis,
                 attributes =
                     listOf(
                         LogAttribute(

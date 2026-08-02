@@ -3,19 +3,11 @@ package com.tospery.suite.aliyun.emas.core
 import android.app.Application
 import android.content.Context
 import com.tospery.base.logging.LogAttribute
-import com.tospery.base.logging.LogTags
 import com.tospery.base.logging.error
 import com.tospery.base.logging.info
 import com.tospery.base.logging.warning
 import com.tospery.base.sdk.ConsentAwareSdkRuntime
 import com.tospery.base.sdk.PrivacyConsentStatus
-import com.tospery.buildmetadata.module_suite_aliyun_emas_core.ModuleMetadata
-
-private val aliyunEmasLifecycleLogTag =
-    LogTags.child(
-        parent = LogTags.moduleTag(ModuleMetadata.path),
-        segment = "lifecycle",
-    )
 
 /**
  * 阿里云 EMAS 移动监控在单个进程内的生命周期所有者。
@@ -65,7 +57,7 @@ class AliyunEmasSdkRuntime internal constructor(
         }
 
         info(
-            tag = aliyunEmasLifecycleLogTag,
+            tag = AliyunEmasLogTags.lifecycle,
             attributes =
                 listOf(
                     LogAttribute(
@@ -105,7 +97,7 @@ class AliyunEmasSdkRuntime internal constructor(
                 sdk.start()
             } ?: return
         if (!startResult) {
-            warning(tag = aliyunEmasLifecycleLogTag) {
+            warning(tag = AliyunEmasLogTags.lifecycle) {
                 "阿里云 EMAS 移动监控初始化返回失败。"
             }
             return
@@ -114,8 +106,9 @@ class AliyunEmasSdkRuntime internal constructor(
         initialized = true
         applyRemoteLogLevel()
         applyCurrentUserInfo()
+        logStartedComponents()
         info(
-            tag = aliyunEmasLifecycleLogTag,
+            tag = AliyunEmasLogTags.lifecycle,
             attributes =
                 listOf(
                     LogAttribute(
@@ -151,7 +144,7 @@ class AliyunEmasSdkRuntime internal constructor(
                     disablePrivacyCollection()
                 }
                 info(
-                    tag = aliyunEmasLifecycleLogTag,
+                    tag = AliyunEmasLogTags.lifecycle,
                     attributes =
                         listOf(
                             LogAttribute(
@@ -224,7 +217,7 @@ class AliyunEmasSdkRuntime internal constructor(
         }
 
         info(
-            tag = aliyunEmasLifecycleLogTag,
+            tag = AliyunEmasLogTags.lifecycle,
             attributes =
                 listOf(
                     LogAttribute(
@@ -238,6 +231,41 @@ class AliyunEmasSdkRuntime internal constructor(
                 ),
         ) {
             "阿里云 EMAS 移动监控用户信息已更新。"
+        }
+    }
+
+    private fun logStartedComponents() {
+        configuration.components.forEach { component ->
+            info(
+                tag = component.logTag,
+                attributes =
+                    listOf(
+                        LogAttribute(
+                            key = "component",
+                            value = component.name,
+                        ),
+                    ),
+            ) {
+                "阿里云 EMAS ${component.displayName}组件已启动。"
+            }
+        }
+
+        if (
+            configuration.hasComponent(AliyunEmasComponent.PERFORMANCE_ANALYSIS) &&
+            configuration.collection.collectNetworkInfo
+        ) {
+            info(
+                tag = AliyunEmasLogTags.networkAnalysis,
+                attributes =
+                    listOf(
+                        LogAttribute(
+                            key = "instrumentation",
+                            value = "gradle_plugin",
+                        ),
+                    ),
+            ) {
+                "阿里云 EMAS 网络分析已随性能组件和 Gradle 插桩启用。"
+            }
         }
     }
 
@@ -269,7 +297,7 @@ class AliyunEmasSdkRuntime internal constructor(
         throwable: Throwable,
     ) {
         error(
-            tag = aliyunEmasLifecycleLogTag,
+            tag = AliyunEmasLogTags.lifecycle,
             attributes =
                 listOf(
                     LogAttribute(key = "operation", value = operation),
