@@ -174,6 +174,12 @@ val toolkitPublicationModules = mapOf(
         description =
             "Umeng analytics adapter for Tospery Suite.",
     ),
+    ":suite-performance-umeng" to MavenModuleMetadata(
+        artifactId = "suite-performance-umeng",
+        displayName = "Tospery Suite Performance Umeng",
+        description =
+            "Umeng U-APM performance monitoring adapter for Tospery Suite.",
+    ),
     ":suite-nav-compose" to MavenModuleMetadata(
         artifactId = "suite-nav-compose",
         displayName = "Tospery Suite Navigation Compose",

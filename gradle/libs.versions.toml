@@ -21,6 +21,7 @@ coil = "3.5.0"
 umengCommon = "9.9.6"
 umengAsms = "1.8.7.2"
 umengUyumao = "1.1.4"
+umengApm = "2.0.8"
 umengShare = "7.3.7"
 umengLink = "2.0.0"
 
@@ -67,6 +68,7 @@ jsoup = { group = "org.jsoup", name = "jsoup", version.ref = "jsoup" }
 umeng-common = { group = "com.umeng.umsdk", name = "common", version.ref = "umengCommon" }
 umeng-asms = { group = "com.umeng.umsdk", name = "asms", version.ref = "umengAsms" }
 umeng-uyumao = { group = "com.umeng.umsdk", name = "uyumao", version.ref = "umengUyumao" }
+umeng-apm = { group = "com.umeng.umsdk", name = "apm", version.ref = "umengApm" }
 umeng-share-core = { group = "com.umeng.umsdk", name = "share-core", version.ref = "umengShare" }
 umeng-link = { group = "com.umeng.umsdk", name = "link", version.ref = "umengLink" }
 
