@@ -35,14 +35,35 @@ class UmengShareProviderTest {
     }
 
     @Test
+    fun supportedChannelsIntersectProjectSelectionAndSystemAvailability() {
+        val supportedChannels =
+            resolveSupportedChannels(
+                enabledChannels =
+                    linkedSetOf(
+                        ShareChannel.ShortMessage,
+                        ShareChannel.Email,
+                    ),
+                isSystemHandlerAvailable = { channel ->
+                    channel == ShareChannel.ShortMessage
+                },
+            )
+
+        assertEquals(setOf(ShareChannel.ShortMessage), supportedChannels)
+    }
+
+    @Test
     fun missingOfflinePlatformModuleUsesAndroidFallback() {
         val primarySdk = RecordingSdk()
         val fallbackSdk = RecordingSdk()
+        val selectedPaths = mutableListOf<Pair<ShareChannel, UmengShareExecutionPath>>()
         val sdk =
             PlatformAwareUmengShareSdk(
                 primarySdk = primarySdk,
                 fallbackSdk = fallbackSdk,
                 isPlatformModuleAvailable = { false },
+                onExecutionPathSelected = { channel, path ->
+                    selectedPaths += channel to path
+                },
             )
 
         sdk.share(
@@ -53,17 +74,28 @@ class UmengShareProviderTest {
 
         assertEquals(null, primarySdk.channel)
         assertEquals(ShareChannel.ShortMessage, fallbackSdk.channel)
+        assertEquals(
+            listOf(
+                ShareChannel.ShortMessage to
+                    UmengShareExecutionPath.ANDROID_SYSTEM_INTENT_FALLBACK,
+            ),
+            selectedPaths,
+        )
     }
 
     @Test
     fun installedOfflinePlatformModuleUsesUShare() {
         val primarySdk = RecordingSdk()
         val fallbackSdk = RecordingSdk()
+        val selectedPaths = mutableListOf<Pair<ShareChannel, UmengShareExecutionPath>>()
         val sdk =
             PlatformAwareUmengShareSdk(
                 primarySdk = primarySdk,
                 fallbackSdk = fallbackSdk,
                 isPlatformModuleAvailable = { true },
+                onExecutionPathSelected = { channel, path ->
+                    selectedPaths += channel to path
+                },
             )
 
         sdk.share(
@@ -74,6 +106,12 @@ class UmengShareProviderTest {
 
         assertEquals(ShareChannel.Email, primarySdk.channel)
         assertEquals(null, fallbackSdk.channel)
+        assertEquals(
+            listOf(
+                ShareChannel.Email to UmengShareExecutionPath.UMENG_PLATFORM_HANDLER,
+            ),
+            selectedPaths,
+        )
     }
 
     private fun request(channel: ShareChannel): ShareRequest =

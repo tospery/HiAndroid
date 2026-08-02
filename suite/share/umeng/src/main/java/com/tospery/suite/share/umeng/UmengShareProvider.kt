@@ -14,13 +14,20 @@ import com.umeng.socialize.UMShareAPI
 import com.umeng.socialize.UMShareListener
 import com.umeng.socialize.bean.SHARE_MEDIA
 
+private val defaultSupportedChannels =
+    setOf(ShareChannel.ShortMessage, ShareChannel.Email)
+
+/** Concrete execution path selected by the U-Share adapter for a share request. */
+enum class UmengShareExecutionPath {
+    UMENG_PLATFORM_HANDLER,
+    ANDROID_SYSTEM_INTENT_FALLBACK,
+}
+
 /** U-Share adapter. The host must initialize the Umeng common SDK after privacy consent. */
 class UmengShareProvider internal constructor(
     private val sdk: UmengShareSdk,
+    override val supportedChannels: Set<ShareChannel> = defaultSupportedChannels,
 ) : ShareProvider {
-    override val supportedChannels: Set<ShareChannel> =
-        setOf(ShareChannel.ShortMessage, ShareChannel.Email)
-
     override fun share(
         request: ShareRequest,
         onResult: (ShareResult) -> Unit,
@@ -38,14 +45,27 @@ class UmengShareProvider internal constructor(
     }
 
     companion object {
-        fun create(activity: Activity): UmengShareProvider =
-            UmengShareProvider(
-                PlatformAwareUmengShareSdk(
-                    primarySdk = AndroidUmengShareSdk(activity),
-                    fallbackSdk = AndroidSystemShareSdk(activity),
-                    isPlatformModuleAvailable = ::isUmengPlatformModuleAvailable,
-                ),
+        fun create(
+            activity: Activity,
+            enabledChannels: Set<ShareChannel> = defaultSupportedChannels,
+            onExecutionPathSelected: (ShareChannel, UmengShareExecutionPath) -> Unit = { _, _ -> },
+        ): UmengShareProvider {
+            val fallbackSdk = AndroidSystemShareSdk(activity)
+            return UmengShareProvider(
+                sdk =
+                    PlatformAwareUmengShareSdk(
+                        primarySdk = AndroidUmengShareSdk(activity),
+                        fallbackSdk = fallbackSdk,
+                        isPlatformModuleAvailable = ::isUmengPlatformModuleAvailable,
+                        onExecutionPathSelected = onExecutionPathSelected,
+                    ),
+                supportedChannels =
+                    resolveSupportedChannels(
+                        enabledChannels = enabledChannels,
+                        isSystemHandlerAvailable = fallbackSdk::isAvailable,
+                    ),
             )
+        }
 
         fun onActivityResult(
             activity: Activity,
@@ -75,18 +95,22 @@ internal class PlatformAwareUmengShareSdk(
     private val primarySdk: UmengShareSdk,
     private val fallbackSdk: UmengShareSdk,
     private val isPlatformModuleAvailable: (ShareChannel) -> Boolean,
+    private val onExecutionPathSelected: (ShareChannel, UmengShareExecutionPath) -> Unit = { _, _ -> },
 ) : UmengShareSdk {
     override fun share(
         channel: ShareChannel,
         content: ShareContent,
         onResult: (ShareResult) -> Unit,
     ) {
-        val sdk =
-            if (isPlatformModuleAvailable(channel)) {
-                primarySdk
+        val usesUmengPlatform = isPlatformModuleAvailable(channel)
+        val executionPath =
+            if (usesUmengPlatform) {
+                UmengShareExecutionPath.UMENG_PLATFORM_HANDLER
             } else {
-                fallbackSdk
+                UmengShareExecutionPath.ANDROID_SYSTEM_INTENT_FALLBACK
             }
+        onExecutionPathSelected(channel, executionPath)
+        val sdk = if (usesUmengPlatform) primarySdk else fallbackSdk
         sdk.share(channel, content, onResult)
     }
 }
@@ -139,35 +163,26 @@ private class AndroidUmengShareSdk(
 private class AndroidSystemShareSdk(
     private val activity: Activity,
 ) : UmengShareSdk {
+    fun isAvailable(channel: ShareChannel): Boolean =
+        createIntent(channel = channel, content = null)
+            ?.resolveActivity(activity.packageManager) != null
+
     override fun share(
         channel: ShareChannel,
         content: ShareContent,
         onResult: (ShareResult) -> Unit,
     ) {
-        val intent =
-            when (channel) {
-                ShareChannel.ShortMessage ->
-                    Intent(Intent.ACTION_SENDTO, Uri.parse(SMS_URI)).apply {
-                        putExtra(SMS_BODY_EXTRA, content.textWithUrl)
-                    }
+        val intent = createIntent(channel = channel, content = content)
+        if (intent == null) {
+            onResult(
+                ShareResult.Failed(
+                    UnsupportedOperationException(channel.value),
+                ),
+            )
+            return
+        }
 
-                ShareChannel.Email ->
-                    Intent(Intent.ACTION_SENDTO, Uri.parse(EMAIL_URI)).apply {
-                        putExtra(Intent.EXTRA_SUBJECT, content.title)
-                        putExtra(Intent.EXTRA_TEXT, content.textWithUrl)
-                    }
-
-                else -> {
-                    onResult(
-                        ShareResult.Failed(
-                            UnsupportedOperationException(channel.value),
-                        ),
-                    )
-                    return
-                }
-            }
-
-        if (intent.resolveActivity(activity.packageManager) == null) {
+        if (!isAvailable(channel)) {
             onResult(
                 ShareResult.Failed(
                     ActivityNotFoundException("No Android handler for ${channel.value}."),
@@ -183,12 +198,39 @@ private class AndroidSystemShareSdk(
             )
     }
 
+    private fun createIntent(
+        channel: ShareChannel,
+        content: ShareContent?,
+    ): Intent? =
+        when (channel) {
+            ShareChannel.ShortMessage ->
+                Intent(Intent.ACTION_SENDTO, Uri.parse(SMS_URI)).apply {
+                    content?.let { putExtra(SMS_BODY_EXTRA, it.textWithUrl) }
+                }
+
+            ShareChannel.Email ->
+                Intent(Intent.ACTION_SENDTO, Uri.parse(EMAIL_URI)).apply {
+                    content?.let {
+                        putExtra(Intent.EXTRA_SUBJECT, it.title)
+                        putExtra(Intent.EXTRA_TEXT, it.textWithUrl)
+                    }
+                }
+
+            else -> null
+        }
+
     companion object {
         private const val SMS_URI = "smsto:"
         private const val EMAIL_URI = "mailto:"
         private const val SMS_BODY_EXTRA = "sms_body"
     }
 }
+
+internal fun resolveSupportedChannels(
+    enabledChannels: Set<ShareChannel>,
+    isSystemHandlerAvailable: (ShareChannel) -> Boolean,
+): Set<ShareChannel> =
+    enabledChannels.filterTo(linkedSetOf(), isSystemHandlerAvailable)
 
 private fun isUmengPlatformModuleAvailable(channel: ShareChannel): Boolean {
     val handlerClassName =
