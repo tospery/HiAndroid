@@ -19,6 +19,7 @@ object RetrofitNetworkFactory {
     fun createOkHttpClient(
         config: RetrofitNetworkConfig,
         redactSensitiveData: Boolean = true,
+        logBodies: Boolean = true,
         configure: OkHttpClient.Builder.() -> Unit = {},
     ): OkHttpClient {
         return OkHttpClient.Builder()
@@ -27,6 +28,7 @@ object RetrofitNetworkFactory {
                     addInterceptor(
                         AppLoggerInterceptor(
                             redactSensitiveData = redactSensitiveData,
+                            logBodies = logBodies,
                         )
                     )
                 }

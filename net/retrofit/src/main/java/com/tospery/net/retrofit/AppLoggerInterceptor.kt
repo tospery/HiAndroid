@@ -27,13 +27,14 @@ internal val NET_LOG_TAG = LogTags.moduleTag(ModuleMetadata.path)
 internal class AppLoggerInterceptor(
     private val tag: String = NET_LOG_TAG,
     private val redactSensitiveData: Boolean = true,
+    private val logBodies: Boolean = true,
 ) : Interceptor {
     override fun intercept(chain: Interceptor.Chain): Response {
         val request = chain.request()
         val url = request.url.toLogUrl()
 
         debug(tag = tag) { "[${request.method}]$url" }
-        if (isLoggable(LogLevel.DEBUG, tag)) {
+        if (logBodies && isLoggable(LogLevel.DEBUG, tag)) {
             request.body.requestBodyForLog(request.headers)?.let { requestBody ->
                 debug(tag = tag) { requestBody }
             }
@@ -47,8 +48,10 @@ internal class AppLoggerInterceptor(
             } else {
                 warning(tag = tag) { "[${request.method}][${response.code}]$url" }
             }
-            // 正文可能包含用户资料等业务数据，仅在 Debug 可记录，且继续执行字段脱敏。
-            debug(tag = tag) { response.responseBodyForLog() }
+            if (logBodies) {
+                // 正文可能包含用户资料等业务数据，仅在 Debug 可记录，且继续执行字段脱敏。
+                debug(tag = tag) { response.responseBodyForLog() }
+            }
 
             response
         } catch (throwable: IOException) {
