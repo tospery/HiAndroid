@@ -8,11 +8,13 @@ import com.tospery.base.logging.LogRegistry
 import com.tospery.base.logging.NoOpLogProvider
 import mockwebserver3.MockResponse
 import mockwebserver3.MockWebServer
+import okhttp3.Dns
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.Request
 import okhttp3.RequestBody.Companion.toRequestBody
 import okhttp3.ResponseBody
 import retrofit2.Call
+import java.net.InetAddress
 import org.junit.Assert.assertEquals
 import org.junit.Test
 import org.junit.Assert.assertTrue
@@ -187,6 +189,51 @@ class RetrofitNetworkFactoryTest {
             assertTrue(messages[3].contains(""""user":{"login":"tospery"}"""))
             assertTrue(messages.joinToString("\n").contains("client-secret").not())
             assertTrue(messages.joinToString("\n").contains("server-secret").not())
+        }
+    }
+
+    @Test
+    fun factoryOkHttpClientDoesNotLogGitHubGraphQlRequest() {
+        MockWebServer().use { server ->
+            server.enqueue(
+                MockResponse(
+                    code = 200,
+                    body = """{"data":{"user":{"contributionDays":[{"date":"2026-08-06"}]}}}""",
+                    headers = okhttp3.Headers.headersOf("Content-Type", "application/json"),
+                ),
+            )
+            server.start()
+
+            val logger = RecordingLogProvider()
+            LogRegistry.install(logger)
+            val url = "http://api.github.com:${server.port}/graphql"
+            val client = RetrofitNetworkFactory.createOkHttpClient(
+                config = RetrofitNetworkConfig(baseUrl = server.url("/").toString()),
+            ).newBuilder()
+                .dns(
+                    object : Dns {
+                        override fun lookup(hostname: String): List<InetAddress> {
+                            return if (hostname == "api.github.com") {
+                                listOf(InetAddress.getByName("127.0.0.1"))
+                            } else {
+                                Dns.SYSTEM.lookup(hostname)
+                            }
+                        }
+                    },
+                )
+                .build()
+
+            client.newCall(
+                Request.Builder()
+                    .url(url)
+                    .post(
+                        """{"query":"query { contributionDays { date } }"}"""
+                            .toRequestBody("application/json".toMediaType()),
+                    )
+                    .build(),
+            ).execute().close()
+
+            assertTrue(logger.entries.isEmpty())
         }
     }
 

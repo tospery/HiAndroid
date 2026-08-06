@@ -32,9 +32,13 @@ internal class AppLoggerInterceptor(
     override fun intercept(chain: Interceptor.Chain): Response {
         val request = chain.request()
         val url = request.url.toLogUrl()
+        val shouldLogRequest = !request.isGitHubGraphQl()
+        val logBody = shouldLogRequest && logBodies
 
-        debug(tag = tag) { "[${request.method}]$url" }
-        if (logBodies && isLoggable(LogLevel.DEBUG, tag)) {
+        if (shouldLogRequest) {
+            debug(tag = tag) { "[${request.method}]$url" }
+        }
+        if (logBody && isLoggable(LogLevel.DEBUG, tag)) {
             request.body.requestBodyForLog(request.headers)?.let { requestBody ->
                 debug(tag = tag) { requestBody }
             }
@@ -43,30 +47,34 @@ internal class AppLoggerInterceptor(
         return try {
             val response = chain.proceed(request)
 
-            if (response.isSuccessful) {
-                info(tag = tag) { "[${request.method}][${response.code}]$url" }
-            } else {
-                warning(tag = tag) { "[${request.method}][${response.code}]$url" }
+            if (shouldLogRequest) {
+                if (response.isSuccessful) {
+                    info(tag = tag) { "[${request.method}][${response.code}]$url" }
+                } else {
+                    warning(tag = tag) { "[${request.method}][${response.code}]$url" }
+                }
             }
-            if (logBodies) {
+            if (logBody) {
                 // 正文可能包含用户资料等业务数据，仅在 Debug 可记录，且继续执行字段脱敏。
                 debug(tag = tag) { response.responseBodyForLog() }
             }
 
             response
         } catch (throwable: IOException) {
-            error(
-                tag = tag,
-                throwable = throwable,
-            ) {
-                buildString {
-                    append("[")
-                    append(request.method)
-                    append("][异常]")
-                    append(url)
-                    append(" ")
-                    append(throwable.javaClass.simpleName)
-                }.trimEnd()
+            if (shouldLogRequest) {
+                error(
+                    tag = tag,
+                    throwable = throwable,
+                ) {
+                    buildString {
+                        append("[")
+                        append(request.method)
+                        append("][异常]")
+                        append(url)
+                        append(" ")
+                        append(throwable.javaClass.simpleName)
+                    }.trimEnd()
+                }
             }
             throw throwable
         }
@@ -111,6 +119,10 @@ internal class AppLoggerInterceptor(
         }
     }
 
+    private fun okhttp3.Request.isGitHubGraphQl(): Boolean {
+        return url.host == GITHUB_API_HOST && url.encodedPath == GITHUB_GRAPHQL_PATH
+    }
+
     private fun Headers.isPlainTextBody(): Boolean {
         val contentEncoding = this["Content-Encoding"]
         if (!contentEncoding.isNullOrBlank() && !contentEncoding.equals("identity", true)) {
@@ -143,6 +155,8 @@ internal class AppLoggerInterceptor(
         const val EMPTY_LOG_VALUE = "<空>"
         const val UNREADABLE_LOG_VALUE = "<不可读取>"
         const val REDACTED_VALUE = "***"
+        const val GITHUB_API_HOST = "api.github.com"
+        const val GITHUB_GRAPHQL_PATH = "/graphql"
 
         val PLAIN_TEXT_CONTENT_TYPES = setOf(
             "text/",
