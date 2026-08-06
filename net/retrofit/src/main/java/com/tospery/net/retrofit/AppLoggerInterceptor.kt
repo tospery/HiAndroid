@@ -21,8 +21,8 @@ internal val NET_LOG_TAG = LogTags.moduleTag(ModuleMetadata.path)
 /**
  * 使用 base 日志抽象记录网络请求生命周期。
  *
- * 日志会打印请求和响应摘要，但会脱敏 Authorization、PAT、OAuth code、
- * code_verifier、access token 等敏感信息。
+ * 默认记录请求/响应的头与正文，便于开发阶段定位接口问题；敏感认证信息仍必须脱敏。
+ * 已明确禁止记录的接口（例如贡献图 GraphQL）完全静默。
  */
 internal class AppLoggerInterceptor(
     private val tag: String = NET_LOG_TAG,
@@ -33,14 +33,29 @@ internal class AppLoggerInterceptor(
         val request = chain.request()
         val url = request.url.toLogUrl()
         val shouldLogRequest = !request.isGitHubGraphQl()
-        val logBody = shouldLogRequest && logBodies
 
         if (shouldLogRequest) {
             debug(tag = tag) { "[${request.method}]$url" }
         }
-        if (logBody && isLoggable(LogLevel.DEBUG, tag)) {
-            request.body.requestBodyForLog(request.headers)?.let { requestBody ->
-                debug(tag = tag) { requestBody }
+        if (shouldLogRequest && isLoggable(LogLevel.DEBUG, tag)) {
+            debug(tag = tag) {
+                requestLogSection(
+                    method = request.method,
+                    section = REQUEST_HEADERS_LOG_SECTION,
+                    content = request.headers.headersForLog(),
+                )
+            }
+            debug(tag = tag) {
+                requestLogSection(
+                    method = request.method,
+                    section = REQUEST_BODY_LOG_SECTION,
+                    content =
+                        if (logBodies) {
+                            request.body.requestBodyForLog(request.headers)
+                        } else {
+                            BODY_LOGGING_DISABLED_VALUE
+                        },
+                )
             }
         }
 
@@ -54,9 +69,28 @@ internal class AppLoggerInterceptor(
                     warning(tag = tag) { "[${request.method}][${response.code}]$url" }
                 }
             }
-            if (logBody) {
-                // 正文可能包含用户资料等业务数据，仅在 Debug 可记录，且继续执行字段脱敏。
-                debug(tag = tag) { response.responseBodyForLog() }
+            if (shouldLogRequest && isLoggable(LogLevel.DEBUG, tag)) {
+                debug(tag = tag) {
+                    responseLogSection(
+                        method = request.method,
+                        statusCode = response.code,
+                        section = RESPONSE_HEADERS_LOG_SECTION,
+                        content = response.headers.headersForLog(),
+                    )
+                }
+                debug(tag = tag) {
+                    responseLogSection(
+                        method = request.method,
+                        statusCode = response.code,
+                        section = RESPONSE_BODY_LOG_SECTION,
+                        content =
+                            if (logBodies) {
+                                response.responseBodyForLog()
+                            } else {
+                                BODY_LOGGING_DISABLED_VALUE
+                            },
+                    )
+                }
             }
 
             response
@@ -80,8 +114,8 @@ internal class AppLoggerInterceptor(
         }
     }
 
-    private fun RequestBody?.requestBodyForLog(headers: Headers): String? {
-        if (this == null) return null
+    private fun RequestBody?.requestBodyForLog(headers: Headers): String {
+        if (this == null) return EMPTY_LOG_VALUE
         if (isDuplex() || isOneShot()) return UNREADABLE_LOG_VALUE
         if (!headers.isPlainTextBody()) return UNREADABLE_LOG_VALUE
 
@@ -91,10 +125,8 @@ internal class AppLoggerInterceptor(
                 buffer.readString(contentType()?.charset(Charsets.UTF_8) ?: Charsets.UTF_8)
             }
         }.getOrDefault(UNREADABLE_LOG_VALUE)
-            .takeUnless(String::isBlank)
-            // 没有请求参数时不额外产生一条“空参数”日志，只保留方法与地址。
-            ?.truncateForLog()
-            ?.redactSensitiveText()
+            .truncateForLog()
+            .redactSensitiveText()
     }
 
     private fun Response.responseBodyForLog(): String {
@@ -123,6 +155,33 @@ internal class AppLoggerInterceptor(
         return url.host == GITHUB_API_HOST && url.encodedPath == GITHUB_GRAPHQL_PATH
     }
 
+    private fun Headers.headersForLog(): String {
+        if (size == 0) return EMPTY_LOG_VALUE
+
+        return buildString {
+            repeat(size) { index ->
+                if (index > 0) append('\n')
+                val name = name(index)
+                append(name)
+                append(": ")
+                append(value(index).redactHeaderValue(name))
+            }
+        }
+    }
+
+    private fun requestLogSection(
+        method: String,
+        section: String,
+        content: String,
+    ): String = "[$method][$section]\n$content"
+
+    private fun responseLogSection(
+        method: String,
+        statusCode: Int,
+        section: String,
+        content: String,
+    ): String = "[$method][$statusCode][$section]\n$content"
+
     private fun Headers.isPlainTextBody(): Boolean {
         val contentEncoding = this["Content-Encoding"]
         if (!contentEncoding.isNullOrBlank() && !contentEncoding.equals("identity", true)) {
@@ -141,6 +200,19 @@ internal class AppLoggerInterceptor(
         }
     }
 
+    private fun String.redactHeaderValue(name: String): String {
+        return if (redactSensitiveData && name.isSensitiveHeaderName()) {
+            REDACTED_VALUE
+        } else {
+            this
+        }
+    }
+
+    private fun String.isSensitiveHeaderName(): Boolean {
+        val normalized = lowercase()
+        return SENSITIVE_HEADER_NAME_PARTS.any(normalized::contains)
+    }
+
     private fun String.truncateForLog(): String {
         return if (length <= MAX_BODY_LOG_CHARS) {
             this.ifBlank { EMPTY_LOG_VALUE }
@@ -154,9 +226,14 @@ internal class AppLoggerInterceptor(
         const val MAX_BODY_LOG_CHARS = 16_384
         const val EMPTY_LOG_VALUE = "<空>"
         const val UNREADABLE_LOG_VALUE = "<不可读取>"
+        const val BODY_LOGGING_DISABLED_VALUE = "<已禁用>"
         const val REDACTED_VALUE = "***"
         const val GITHUB_API_HOST = "api.github.com"
         const val GITHUB_GRAPHQL_PATH = "/graphql"
+        const val REQUEST_HEADERS_LOG_SECTION = "请求头"
+        const val REQUEST_BODY_LOG_SECTION = "请求正文"
+        const val RESPONSE_HEADERS_LOG_SECTION = "响应头"
+        const val RESPONSE_BODY_LOG_SECTION = "响应正文"
 
         val PLAIN_TEXT_CONTENT_TYPES = setOf(
             "text/",
@@ -170,6 +247,17 @@ internal class AppLoggerInterceptor(
             pattern = "(?i)(\"(?:githubAccessToken|githubOAuthCode|githubOAuthCodeVerifier|" +
                 "access_token|refresh_token|id_token|token|code_verifier|client_secret|" +
                 "clientSecret|password)\"\\s*:\\s*\")([^\"]*)(\")",
+        )
+
+        val SENSITIVE_HEADER_NAME_PARTS = setOf(
+            "apikey",
+            "api-key",
+            "authorization",
+            "cookie",
+            "credential",
+            "secret",
+            "signature",
+            "token",
         )
     }
 }

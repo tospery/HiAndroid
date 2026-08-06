@@ -24,14 +24,6 @@ object RetrofitNetworkFactory {
     ): OkHttpClient {
         return OkHttpClient.Builder()
             .apply {
-                if (isNetworkLoggable()) {
-                    addInterceptor(
-                        AppLoggerInterceptor(
-                            redactSensitiveData = redactSensitiveData,
-                            logBodies = logBodies,
-                        )
-                    )
-                }
                 if (config.defaultHeaders.isNotEmpty()) {
                     addInterceptor(DefaultHeadersInterceptor(config.defaultHeaders))
                 }
@@ -40,6 +32,17 @@ object RetrofitNetworkFactory {
             .readTimeout(config.readTimeoutMillis, TimeUnit.MILLISECONDS)
             .writeTimeout(config.writeTimeoutMillis, TimeUnit.MILLISECONDS)
             .apply(configure)
+            .apply {
+                // 日志拦截器最后注册，才能记录默认头和鉴权拦截器补全后的真实请求。
+                if (isNetworkLoggable()) {
+                    addInterceptor(
+                        AppLoggerInterceptor(
+                            redactSensitiveData = redactSensitiveData,
+                            logBodies = logBodies,
+                        )
+                    )
+                }
+            }
             .build()
     }
 

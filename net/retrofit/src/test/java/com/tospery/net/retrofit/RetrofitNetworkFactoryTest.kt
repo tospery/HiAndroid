@@ -134,15 +134,25 @@ class RetrofitNetworkFactoryTest {
             ).execute().close()
 
             val messages = logger.entries.map { it.message }
-            assertEquals(3, messages.size)
+            assertEquals(6, messages.size)
             assertEquals("[GET]${server.url("/repos")}", messages[0])
-            assertEquals("[GET][200]${server.url("/repos")}", messages[1])
-            assertEquals("ok", messages[2])
+            assertEquals("[GET][请求头]\n<空>", messages[1])
+            assertEquals("[GET][请求正文]\n<空>", messages[2])
+            assertEquals("[GET][200]${server.url("/repos")}", messages[3])
+            assertTrue(messages[4].startsWith("[GET][200][响应头]\n"))
+            assertTrue(messages[4].contains("Content-Length: 2"))
+            assertEquals("[GET][200][响应正文]\nok", messages[5])
             assertEquals(
-                listOf(LogLevel.DEBUG, LogLevel.INFO, LogLevel.DEBUG),
+                listOf(
+                    LogLevel.DEBUG,
+                    LogLevel.DEBUG,
+                    LogLevel.DEBUG,
+                    LogLevel.INFO,
+                    LogLevel.DEBUG,
+                    LogLevel.DEBUG,
+                ),
                 logger.entries.map(LogEntry::level),
             )
-            assertTrue(messages.contains("<空>").not())
             assertTrue(messages.joinToString("\n").contains("secret").not())
             assertTrue(logger.entries.all { it.tag == NET_LOG_TAG })
         }
@@ -164,6 +174,7 @@ class RetrofitNetworkFactoryTest {
             LogRegistry.install(logger)
             val config = RetrofitNetworkConfig(
                 baseUrl = server.url("/").toString(),
+                defaultHeaders = mapOf("X-Client-Id" to "higit"),
             )
             val client = RetrofitNetworkFactory.createOkHttpClient(
                 config = config,
@@ -182,11 +193,14 @@ class RetrofitNetworkFactoryTest {
 
             val messages = logger.entries.map { it.message }
             assertEquals("[POST]${server.url("/v1/github/login")}", messages[0])
-            assertTrue(messages[1].contains(""""githubAccessToken":"***""""))
-            assertTrue(messages[1].contains(""""client":{"platform":"android"}"""))
-            assertEquals("[POST][200]${server.url("/v1/github/login")}", messages[2])
-            assertTrue(messages[3].contains(""""access_token":"***""""))
-            assertTrue(messages[3].contains(""""user":{"login":"tospery"}"""))
+            assertTrue(messages[1].contains("Authorization: ***"))
+            assertTrue(messages[1].contains("X-Client-Id: higit"))
+            assertTrue(messages[2].contains(""""githubAccessToken":"***""""))
+            assertTrue(messages[2].contains(""""client":{"platform":"android"}"""))
+            assertEquals("[POST][200]${server.url("/v1/github/login")}", messages[3])
+            assertTrue(messages[4].contains("Content-Type: application/json"))
+            assertTrue(messages[5].contains(""""access_token":"***""""))
+            assertTrue(messages[5].contains(""""user":{"login":"tospery"}"""))
             assertTrue(messages.joinToString("\n").contains("client-secret").not())
             assertTrue(messages.joinToString("\n").contains("server-secret").not())
         }
@@ -274,12 +288,12 @@ class RetrofitNetworkFactoryTest {
                 "[POST]${server.url("/v1/github/login?access_token=query-secret")}",
                 messages[0],
             )
-            assertTrue(messages[1].contains(""""githubAccessToken":"client-secret""""))
+            assertTrue(messages[2].contains(""""githubAccessToken":"client-secret""""))
             assertEquals(
                 "[POST][200]${server.url("/v1/github/login?access_token=query-secret")}",
-                messages[2],
+                messages[3],
             )
-            assertTrue(messages[3].contains(""""access_token":"server-secret""""))
+            assertTrue(messages[5].contains(""""access_token":"server-secret""""))
         }
     }
 
