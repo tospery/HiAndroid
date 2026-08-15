@@ -30,6 +30,46 @@ MODULES = {
             ("net-retrofit", "runtime"),
         },
     ),
+    "suite-aliyun-emas-core": (
+        "aar",
+        {("base", "compile")},
+    ),
+    "suite-umeng-core": (
+        "aar",
+        {("base", "compile")},
+    ),
+    "suite-analytics-umeng": (
+        "aar",
+        {
+            ("base", "compile"),
+            ("suite-umeng-core", "compile"),
+        },
+    ),
+    "suite-performance-umeng": (
+        "aar",
+        {
+            ("base", "compile"),
+            ("suite-umeng-core", "compile"),
+        },
+    ),
+    "suite-nav-compose": (
+        "aar",
+        {("nav", "compile")},
+    ),
+    "suite-nav-umeng-ulink": (
+        "aar",
+        {
+            ("base", "compile"),
+            ("suite-umeng-core", "compile"),
+        },
+    ),
+    "suite-share-umeng": (
+        "aar",
+        {
+            ("base", "compile"),
+            ("suite-umeng-core", "compile"),
+        },
+    ),
     "github-model-core": ("jar", set()),
     "github-trending": (
         "jar",
@@ -146,7 +186,7 @@ def main():
             expected_dependencies,
         )
 
-    print("8 个 Maven Local 构件及内部依赖全部校验通过")
+    print(f"{len(MODULES)} 个 Maven Local 构件及内部依赖全部校验通过")
 
 
 if __name__ == "__main__":
