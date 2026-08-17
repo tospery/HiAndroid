@@ -325,7 +325,23 @@ subprojects {
 
         // Maven JAR 没有 Kotlin 平台属性，而 Composite Build 会直接选择项目变体。
         // 额外提供 androidJvm 兼容变体，使 Android 模块能够消费纯 JVM Toolkit 模块。
-        listOf("debug", "release").forEach { buildType ->
+        val isAndroidStudioSync =
+            providers.systemProperty("idea.sync.active")
+                .map(String::toBoolean)
+                .getOrElse(false)
+        val publishAndroidJvmCompatVariants =
+            providers.gradleProperty("toolkit.publish.android.jvm.compat.variants")
+                .map(String::toBoolean)
+                .getOrElse(!isAndroidStudioSync)
+
+        val androidJvmCompatBuildTypes =
+            if (publishAndroidJvmCompatVariants) {
+                listOf("debug", "release")
+            } else {
+                emptyList()
+            }
+
+        androidJvmCompatBuildTypes.forEach { buildType ->
             listOf(
                 Triple("ApiElements", apiElements, Usage.JAVA_API),
                 Triple("RuntimeElements", runtimeElements, Usage.JAVA_RUNTIME),
