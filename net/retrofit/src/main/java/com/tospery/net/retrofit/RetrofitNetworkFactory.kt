@@ -18,7 +18,8 @@ object RetrofitNetworkFactory {
      */
     fun createOkHttpClient(
         config: RetrofitNetworkConfig,
-        redactSensitiveData: Boolean = true,
+        // DEBUG 日志可输出原始诊断值；INFO 起步的 Release 日志始终脱敏。
+        redactSensitiveData: Boolean = !isLoggable(LogLevel.DEBUG, NET_LOG_TAG),
         logBodies: Boolean = true,
         configure: OkHttpClient.Builder.() -> Unit = {},
     ): OkHttpClient {

@@ -113,7 +113,7 @@ class RetrofitNetworkFactoryTest {
     }
 
     @Test
-    fun factoryOkHttpClientLogsNetworkRequestWithoutQuery() {
+    fun factoryOkHttpClientLogsDebugBodiesWithoutSectionLabels() {
         MockWebServer().use { server ->
             server.enqueue(MockResponse(code = 200, body = "ok"))
             server.start()
@@ -134,32 +134,24 @@ class RetrofitNetworkFactoryTest {
             ).execute().close()
 
             val messages = logger.entries.map { it.message }
-            assertEquals(6, messages.size)
-            assertEquals("[GET]${server.url("/repos")}", messages[0])
-            assertEquals("[GET][请求头]\n<空>", messages[1])
-            assertEquals("[GET][请求正文]\n<空>", messages[2])
-            assertEquals("[GET][200]${server.url("/repos")}", messages[3])
-            assertTrue(messages[4].startsWith("[GET][200][响应头]\n"))
-            assertTrue(messages[4].contains("Content-Length: 2"))
-            assertEquals("[GET][200][响应正文]\nok", messages[5])
+            assertEquals(3, messages.size)
+            assertEquals("[GET]${server.url("/repos?access_token=secret")}", messages[0])
+            assertEquals("[GET][200]${server.url("/repos?access_token=secret")}", messages[1])
+            assertEquals("ok", messages[2])
             assertEquals(
                 listOf(
-                    LogLevel.DEBUG,
-                    LogLevel.DEBUG,
-                    LogLevel.DEBUG,
                     LogLevel.INFO,
-                    LogLevel.DEBUG,
+                    LogLevel.INFO,
                     LogLevel.DEBUG,
                 ),
                 logger.entries.map(LogEntry::level),
             )
-            assertTrue(messages.joinToString("\n").contains("secret").not())
             assertTrue(logger.entries.all { it.tag == NET_LOG_TAG })
         }
     }
 
     @Test
-    fun factoryOkHttpClientLogsRequestAndResponseDetailsWithRedaction() {
+    fun factoryOkHttpClientLogsRawDebugRequestAndResponseDetails() {
         MockWebServer().use { server ->
             server.enqueue(
                 MockResponse(
@@ -193,16 +185,17 @@ class RetrofitNetworkFactoryTest {
 
             val messages = logger.entries.map { it.message }
             assertEquals("[POST]${server.url("/v1/github/login")}", messages[0])
-            assertTrue(messages[1].contains("Authorization: ***"))
-            assertTrue(messages[1].contains("X-Client-Id: higit"))
-            assertTrue(messages[2].contains(""""githubAccessToken":"***""""))
-            assertTrue(messages[2].contains(""""client":{"platform":"android"}"""))
+            assertEquals("X-Client-Id: higit", messages[1])
+            assertTrue(messages[1].contains("Authorization").not())
+            assertEquals(
+                """{"githubAccessToken":"client-secret","client":{"platform":"android"}}""",
+                messages[2],
+            )
             assertEquals("[POST][200]${server.url("/v1/github/login")}", messages[3])
-            assertTrue(messages[4].contains("Content-Type: application/json"))
-            assertTrue(messages[5].contains(""""access_token":"***""""))
-            assertTrue(messages[5].contains(""""user":{"login":"tospery"}"""))
-            assertTrue(messages.joinToString("\n").contains("client-secret").not())
-            assertTrue(messages.joinToString("\n").contains("server-secret").not())
+            assertEquals(
+                """{"access_token":"server-secret","user":{"login":"tospery"}}""",
+                messages[4],
+            )
         }
     }
 
@@ -252,12 +245,12 @@ class RetrofitNetworkFactoryTest {
     }
 
     @Test
-    fun factoryOkHttpClientCanDisableSensitiveDataRedactionForDebugBuilds() {
+    fun factoryOkHttpClientTruncatesDebugBodiesAt1024Characters() {
         MockWebServer().use { server ->
             server.enqueue(
                 MockResponse(
                     code = 200,
-                    body = """{"access_token":"server-secret"}""",
+                    body = "x".repeat(1_025),
                     headers = okhttp3.Headers.headersOf("Content-Type", "application/json"),
                 )
             )
@@ -270,35 +263,26 @@ class RetrofitNetworkFactoryTest {
             )
             val client = RetrofitNetworkFactory.createOkHttpClient(
                 config = config,
-                redactSensitiveData = false,
             )
 
             client.newCall(
                 Request.Builder()
-                    .url(server.url("/v1/github/login?access_token=query-secret"))
+                    .url(server.url("/v1/github/login"))
                     .post(
-                        """{"githubAccessToken":"client-secret","client":{"platform":"android"}}"""
+                        "y".repeat(1_025)
                             .toRequestBody("application/json".toMediaType())
                     )
                     .build(),
             ).execute().close()
 
             val messages = logger.entries.map { it.message }
-            assertEquals(
-                "[POST]${server.url("/v1/github/login?access_token=query-secret")}",
-                messages[0],
-            )
-            assertTrue(messages[2].contains(""""githubAccessToken":"client-secret""""))
-            assertEquals(
-                "[POST][200]${server.url("/v1/github/login?access_token=query-secret")}",
-                messages[3],
-            )
-            assertTrue(messages[5].contains(""""access_token":"server-secret""""))
+            assertEquals("y".repeat(1_024) + "\n...<已截断>", messages[1])
+            assertEquals("x".repeat(1_024) + "\n...<已截断>", messages[3])
         }
     }
 
     @Test
-    fun infoMinimumLevelDoesNotLogRequestOrResponseBodies() {
+    fun infoMinimumLevelLogsOnlyReleaseRequestAndResponseLines() {
         MockWebServer().use { server ->
             server.enqueue(
                 MockResponse(
@@ -320,16 +304,55 @@ class RetrofitNetworkFactoryTest {
                 .newCall(
                     Request
                         .Builder()
-                        .url(server.url("/user"))
+                        .url(server.url("/user?access_token=query-secret"))
                         .build(),
                 ).execute()
                 .close()
 
             assertEquals(
-                listOf("[GET][200]${server.url("/user")}"),
+                listOf(
+                    "[GET]${server.url("/user")}",
+                    "[GET][200]${server.url("/user")}",
+                ),
                 logger.entries.map(LogEntry::message),
             )
             assertTrue(logger.entries.all { it.level == LogLevel.INFO })
+        }
+    }
+
+    @Test
+    fun infoMinimumLevelLogsNon2xxResponseAtErrorLevel() {
+        MockWebServer().use { server ->
+            server.enqueue(MockResponse(code = 500, body = "server failure"))
+            server.start()
+
+            val logger = RecordingLogProvider(minimumLevel = LogLevel.INFO)
+            LogRegistry.install(logger)
+            val client =
+                RetrofitNetworkFactory.createOkHttpClient(
+                    config = RetrofitNetworkConfig(baseUrl = server.url("/").toString()),
+                )
+
+            client
+                .newCall(
+                    Request
+                        .Builder()
+                        .url(server.url("/user?access_token=query-secret"))
+                        .build(),
+                ).execute()
+                .close()
+
+            assertEquals(
+                listOf(
+                    "[GET]${server.url("/user")}",
+                    "[GET][500]${server.url("/user")}",
+                ),
+                logger.entries.map(LogEntry::message),
+            )
+            assertEquals(
+                listOf(LogLevel.INFO, LogLevel.ERROR),
+                logger.entries.map(LogEntry::level),
+            )
         }
     }
 
