@@ -7,8 +7,11 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -19,6 +22,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
@@ -45,14 +49,23 @@ fun ConfirmActionDialog(
     title: String,
     message: String?,
     confirmText: String,
-    dismissText: String,
+    dismissText: String?,
     onConfirm: () -> Unit,
     onDismiss: () -> Unit,
     confirmActionStyle: ConfirmActionStyle = ConfirmActionStyle.PRIMARY,
+    messageMaxVisibleLines: Int? = null,
+    dismissible: Boolean = true,
 ) {
     Dialog(
-        onDismissRequest = onDismiss,
-        properties = DialogProperties(usePlatformDefaultWidth = false),
+        onDismissRequest = {
+            if (dismissible) onDismiss()
+        },
+        properties =
+            DialogProperties(
+                dismissOnBackPress = dismissible,
+                dismissOnClickOutside = dismissible,
+                usePlatformDefaultWidth = false,
+            ),
     ) {
         ConfirmActionDialogContent(
             title = title,
@@ -62,6 +75,7 @@ fun ConfirmActionDialog(
             onConfirm = onConfirm,
             onDismiss = onDismiss,
             confirmActionStyle = confirmActionStyle,
+            messageMaxVisibleLines = messageMaxVisibleLines,
             modifier = Modifier.padding(horizontal = 24.dp),
         )
     }
@@ -75,12 +89,17 @@ fun ConfirmActionDialogContent(
     title: String,
     message: String?,
     confirmText: String,
-    dismissText: String,
+    dismissText: String?,
     onConfirm: () -> Unit,
     onDismiss: () -> Unit,
     confirmActionStyle: ConfirmActionStyle = ConfirmActionStyle.PRIMARY,
+    messageMaxVisibleLines: Int? = null,
     modifier: Modifier = Modifier,
 ) {
+    require(messageMaxVisibleLines == null || messageMaxVisibleLines > 0) {
+        "messageMaxVisibleLines 必须大于 0。"
+    }
+
     Surface(
         modifier = modifier.fillMaxWidth(),
         shape = RoundedCornerShape(28.dp),
@@ -105,30 +124,51 @@ fun ConfirmActionDialogContent(
 
                 message?.let {
                     Spacer(modifier = Modifier.height(12.dp))
+                    val messageStyle = MaterialTheme.typography.bodyMedium
+                    val messageModifier =
+                        if (messageMaxVisibleLines == null) {
+                            Modifier
+                        } else {
+                            // 只限制可见视口，完整消息仍可在弹窗内部滚动阅读。
+                            val maxMessageHeight =
+                                with(LocalDensity.current) {
+                                    messageStyle.lineHeight.toDp() * messageMaxVisibleLines
+                                }
+                            Modifier
+                                .heightIn(max = maxMessageHeight)
+                                .verticalScroll(rememberScrollState())
+                        }
                     Text(
                         text = it,
-                        modifier = Modifier.fillMaxWidth(),
+                        modifier = Modifier.fillMaxWidth().then(messageModifier),
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         textAlign = TextAlign.Center,
-                        style = MaterialTheme.typography.bodyMedium,
+                        style = messageStyle,
                     )
                 }
 
                 Spacer(modifier = Modifier.height(28.dp))
                 Row(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
+                    horizontalArrangement =
+                        if (dismissText == null) {
+                            Arrangement.Center
+                        } else {
+                            Arrangement.SpaceBetween
+                        },
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    OutlinedButton(
-                        onClick = onDismiss,
-                        modifier = Modifier.width(actionWidth),
-                        shape = RoundedCornerShape(14.dp),
-                    ) {
-                        Text(
-                            text = dismissText,
-                            style = MaterialTheme.typography.labelLarge,
-                        )
+                    dismissText?.let { text ->
+                        OutlinedButton(
+                            onClick = onDismiss,
+                            modifier = Modifier.width(actionWidth),
+                            shape = RoundedCornerShape(14.dp),
+                        ) {
+                            Text(
+                                text = text,
+                                style = MaterialTheme.typography.labelLarge,
+                            )
+                        }
                     }
                     Button(
                         onClick = onConfirm,
