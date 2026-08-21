@@ -23,7 +23,7 @@ private const val TOP_APP_BAR_DIVIDER_ALPHA = 0.85f
 fun SuiteCenterAlignedTopAppBar(
     title: @Composable () -> Unit,
     modifier: Modifier = Modifier,
-    containerColor: Color = MaterialTheme.colorScheme.background,
+    containerColor: Color = MaterialTheme.colorScheme.surfaceContainer,
     showDivider: Boolean = true,
     navigationIcon: @Composable () -> Unit = {},
     actions: @Composable RowScope.() -> Unit = {},

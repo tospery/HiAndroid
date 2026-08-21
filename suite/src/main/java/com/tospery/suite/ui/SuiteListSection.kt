@@ -17,7 +17,20 @@ import androidx.compose.ui.graphics.Color
 @Composable
 fun SuiteListSection(
     modifier: Modifier = Modifier,
-    containerColor: Color = MaterialTheme.colorScheme.surface,
+    content: @Composable ColumnScope.() -> Unit,
+) {
+    SuiteListSection(
+        modifier = modifier,
+        containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
+        content = content,
+    )
+}
+
+/** 可在特殊语义场景中覆盖默认的内容行容器色。 */
+@Composable
+fun SuiteListSection(
+    modifier: Modifier = Modifier,
+    containerColor: Color,
     content: @Composable ColumnScope.() -> Unit,
 ) {
     Column(

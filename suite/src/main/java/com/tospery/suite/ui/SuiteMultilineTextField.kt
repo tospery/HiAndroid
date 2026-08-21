@@ -14,6 +14,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -38,6 +39,7 @@ fun SuiteMultilineTextField(
     keyboardOptions: KeyboardOptions = KeyboardOptions.Default,
     keyboardActions: KeyboardActions = KeyboardActions.Default,
     counterContent: (@Composable () -> Unit)? = null,
+    containerColor: Color = MaterialTheme.colorScheme.surfaceContainerLow,
 ) {
     BasicTextField(
         value = value,
@@ -46,7 +48,7 @@ fun SuiteMultilineTextField(
             modifier
                 .fillMaxWidth()
                 .height(height)
-                .background(MaterialTheme.colorScheme.surface),
+                .background(containerColor),
         enabled = enabled,
         minLines = minLines,
         maxLines = maxLines,

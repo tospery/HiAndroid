@@ -24,6 +24,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.onFocusChanged
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.unit.dp
@@ -44,6 +45,7 @@ fun SuiteSingleLineTextField(
     textStyle: TextStyle = MaterialTheme.typography.bodyLarge,
     keyboardOptions: KeyboardOptions = KeyboardOptions.Default,
     keyboardActions: KeyboardActions = KeyboardActions.Default,
+    containerColor: Color = MaterialTheme.colorScheme.surfaceContainerLow,
 ) {
     var isFocused by remember { mutableStateOf(false) }
 
@@ -54,7 +56,7 @@ fun SuiteSingleLineTextField(
             modifier
                 .fillMaxWidth()
                 .onFocusChanged { isFocused = it.isFocused }
-                .background(MaterialTheme.colorScheme.surface),
+                .background(containerColor),
         enabled = enabled,
         singleLine = true,
         textStyle =

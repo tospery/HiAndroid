@@ -6,6 +6,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 
 /**
  * 带向右导航指示器的通用列表行。
@@ -21,6 +22,7 @@ fun SuiteNavigationListRow(
     trailingText: String? = null,
     leadingContent: (@Composable () -> Unit)? = null,
     showDivider: Boolean = true,
+    containerColor: Color = MaterialTheme.colorScheme.surfaceContainerLow,
 ) {
     SuiteListRow(
         title = title,
@@ -36,6 +38,7 @@ fun SuiteNavigationListRow(
                 tint = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         },
+        containerColor = containerColor,
         showDivider = showDivider,
     )
 }

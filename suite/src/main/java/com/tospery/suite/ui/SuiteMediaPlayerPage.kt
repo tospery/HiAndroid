@@ -165,7 +165,7 @@ fun SuiteMediaPlayerPage(
 
     Scaffold(
         modifier = modifier,
-        containerColor = MaterialTheme.colorScheme.surface,
+        containerColor = MaterialTheme.colorScheme.surfaceContainer,
         contentWindowInsets = WindowInsets(0, 0, 0, 0),
         topBar = {
             SuiteCenterAlignedTopAppBar(
@@ -196,7 +196,7 @@ fun SuiteMediaPlayerPage(
                 Modifier
                     .fillMaxSize()
                     .padding(innerPadding)
-                    .background(MaterialTheme.colorScheme.surface),
+                    .background(MaterialTheme.colorScheme.surfaceContainer),
             contentAlignment = Alignment.Center,
         ) {
             player?.let { activePlayer ->
@@ -244,7 +244,7 @@ fun SuiteMediaPlayerPage(
                     modifier =
                         Modifier
                             .fillMaxSize()
-                            .background(MaterialTheme.colorScheme.surface),
+                            .background(MaterialTheme.colorScheme.surfaceContainer),
                 )
             }
         }

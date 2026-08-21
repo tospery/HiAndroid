@@ -1,5 +1,6 @@
 package com.tospery.suite.ui
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
@@ -63,6 +64,7 @@ fun SuiteListRow(
     trailingContent: (@Composable () -> Unit)? = null,
     contentPadding: PaddingValues = SuiteListRowContentPadding,
     showDivider: Boolean = true,
+    containerColor: Color = MaterialTheme.colorScheme.surfaceContainerLow,
 ) {
     val layoutDirection = LocalLayoutDirection.current
     val rowModifier =
@@ -71,7 +73,12 @@ fun SuiteListRow(
         } else {
             modifier.clickable(onClick = onClick)
         }
-    Column(modifier = Modifier.fillMaxWidth()) {
+    Column(
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .background(containerColor),
+    ) {
         Row(
             modifier =
                 rowModifier

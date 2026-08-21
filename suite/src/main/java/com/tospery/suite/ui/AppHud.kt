@@ -46,7 +46,7 @@ fun AppHud(
                 modifier = Modifier
                     .widthIn(min = 112.dp, max = 220.dp)
                     .clip(RoundedCornerShape(16.dp)),
-                color = MaterialTheme.colorScheme.surface,
+                color = MaterialTheme.colorScheme.surfaceContainerHigh,
                 tonalElevation = 6.dp,
                 shadowElevation = 8.dp,
             ) {

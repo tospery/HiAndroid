@@ -23,6 +23,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.TextStyle
@@ -57,13 +58,14 @@ fun SuiteGrowingMultilineTextField(
     keyboardOptions: KeyboardOptions = KeyboardOptions.Default,
     keyboardActions: KeyboardActions = KeyboardActions.Default,
     contentPadding: PaddingValues = DEFAULT_CONTENT_PADDING,
+    containerColor: Color = MaterialTheme.colorScheme.surfaceContainerLow,
 ) {
     val scrollState = rememberScrollState()
 
     Box(
         modifier =
             modifier
-                .background(MaterialTheme.colorScheme.surface),
+                .background(containerColor),
     ) {
         BasicTextField(
             value = value,

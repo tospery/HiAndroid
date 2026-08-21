@@ -26,6 +26,7 @@ fun SuiteListActionRow(
     titleColor: Color = MaterialTheme.colorScheme.error,
     contentPadding: PaddingValues = SuiteListActionRowContentPadding,
     showDivider: Boolean = false,
+    containerColor: Color = MaterialTheme.colorScheme.surfaceContainerLow,
 ) {
     SuiteListRow(
         title = title,
@@ -35,6 +36,7 @@ fun SuiteListActionRow(
         titleColor = titleColor,
         titleTextAlign = TextAlign.Center,
         contentPadding = contentPadding,
+        containerColor = containerColor,
         showDivider = showDivider,
     )
 }
