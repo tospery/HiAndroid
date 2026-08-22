@@ -91,6 +91,54 @@ class ConfirmActionDialogTest {
     }
 
     @Test
+    fun multiLineMessageIsStartAligned() {
+        val message = "停止后，系统仍会按照当前进度结算 Token。\n继续"
+
+        composeTestRule.setContent {
+            MaterialTheme {
+                ConfirmActionDialogContent(
+                    title = "停止生成并返回？",
+                    message = message,
+                    confirmText = "停止并返回",
+                    dismissText = "继续查看",
+                    onConfirm = {},
+                    onDismiss = {},
+                    modifier = Modifier.width(360.dp),
+                )
+            }
+        }
+
+        val messageLayout = textLayoutResult(message)
+
+        assertTrue(messageLayout.lineCount > 1)
+        assertEquals(0f, messageLayout.getLineLeft(messageLayout.lineCount - 1), 1f)
+    }
+
+    @Test
+    fun singleLineMessageIsCentered() {
+        val message = "停止后，仍会按照当前进度结算 Token。"
+
+        composeTestRule.setContent {
+            MaterialTheme {
+                ConfirmActionDialogContent(
+                    title = "停止生成并返回？",
+                    message = message,
+                    confirmText = "停止并返回",
+                    dismissText = "继续查看",
+                    onConfirm = {},
+                    onDismiss = {},
+                    modifier = Modifier.width(360.dp),
+                )
+            }
+        }
+
+        val messageLayout = textLayoutResult(message)
+
+        assertEquals(1, messageLayout.lineCount)
+        assertTrue(messageLayout.getLineLeft(0) > 0f)
+    }
+
+    @Test
     fun pairedActionLabelsShrinkTogetherAndEllipsizeInsteadOfWrapping() {
         val dismissText = "继续查看"
         val confirmText = "停止生成并返回"

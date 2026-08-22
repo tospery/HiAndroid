@@ -22,6 +22,7 @@ import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -162,6 +163,8 @@ fun ConfirmActionDialogContent(
                 message?.let {
                     Spacer(modifier = Modifier.height(12.dp))
                     val messageStyle = MaterialTheme.typography.bodyMedium
+                    // 实际行数只能在布局后取得；保留它以在换行时切换到起始对齐。
+                    val messageLineCount = remember(it) { mutableIntStateOf(1) }
                     val messageModifier =
                         if (messageMaxVisibleLines == null) {
                             Modifier
@@ -179,8 +182,16 @@ fun ConfirmActionDialogContent(
                         text = it,
                         modifier = Modifier.fillMaxWidth().then(messageModifier),
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        textAlign = TextAlign.Center,
+                        textAlign =
+                            if (messageLineCount.intValue <= 1) {
+                                TextAlign.Center
+                            } else {
+                                TextAlign.Start
+                            },
                         style = messageStyle,
+                        onTextLayout = { result ->
+                            messageLineCount.intValue = result.lineCount
+                        },
                     )
                 }
 
