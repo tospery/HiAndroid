@@ -18,9 +18,12 @@ import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performSemanticsAction
 import androidx.compose.ui.test.performTouchInput
 import androidx.compose.ui.test.swipeUp
 import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.TextLayoutResult
+import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import org.junit.Assert.assertEquals
@@ -85,6 +88,64 @@ class ConfirmActionDialogTest {
             .assertIsDisplayed()
         composeTestRule.onNodeWithText("正在停止…").assertIsNotEnabled()
         composeTestRule.onNodeWithText("继续查看").assertIsNotEnabled()
+    }
+
+    @Test
+    fun pairedActionLabelsShrinkTogetherAndEllipsizeInsteadOfWrapping() {
+        val dismissText = "继续查看"
+        val confirmText = "停止生成并返回"
+
+        composeTestRule.setContent {
+            MaterialTheme {
+                ConfirmActionDialogContent(
+                    title = "停止生成并返回？",
+                    message = null,
+                    confirmText = confirmText,
+                    dismissText = dismissText,
+                    onConfirm = {},
+                    onDismiss = {},
+                    modifier = Modifier.width(312.dp),
+                )
+            }
+        }
+
+        val dismissLayout = textLayoutResult(dismissText)
+        val confirmLayout = textLayoutResult(confirmText)
+
+        assertEquals(1, dismissLayout.lineCount)
+        assertEquals(1, confirmLayout.lineCount)
+        assertEquals(12.sp, dismissLayout.layoutInput.style.fontSize)
+        assertEquals(12.sp, confirmLayout.layoutInput.style.fontSize)
+        assertTrue(confirmLayout.isLineEllipsized(0))
+    }
+
+    @Test
+    fun pairedActionsKeepOneThirdOfTheDialogWidth() {
+        composeTestRule.setContent {
+            MaterialTheme {
+                ConfirmActionDialogContent(
+                    title = "确认操作？",
+                    message = null,
+                    confirmText = "确认",
+                    dismissText = "取消",
+                    onConfirm = {},
+                    onDismiss = {},
+                    modifier = Modifier.width(312.dp),
+                )
+            }
+        }
+
+        val dismissBounds =
+            composeTestRule
+                .onNode(hasClickAction() and hasText("取消"))
+                .getUnclippedBoundsInRoot()
+        val confirmBounds =
+            composeTestRule
+                .onNode(hasClickAction() and hasText("确认"))
+                .getUnclippedBoundsInRoot()
+
+        assertEquals(104f, dismissBounds.right.value - dismissBounds.left.value, 1f)
+        assertEquals(104f, confirmBounds.right.value - confirmBounds.left.value, 1f)
     }
 
     @Test
@@ -168,5 +229,19 @@ class ConfirmActionDialogTest {
                 androidx.compose.ui.semantics.SemanticsProperties.VerticalScrollAxisRange,
             ].value()
         assertTrue(scrolled > initialScroll)
+    }
+
+    private fun textLayoutResult(text: String): TextLayoutResult {
+        var layoutResult: TextLayoutResult? = null
+
+        composeTestRule
+            .onNodeWithText(text, useUnmergedTree = true)
+            .performSemanticsAction(SemanticsActions.GetTextLayoutResult) { getResults ->
+                val results = mutableListOf<TextLayoutResult>()
+                getResults(results)
+                layoutResult = results.single()
+            }
+
+        return checkNotNull(layoutResult)
     }
 }

@@ -5,6 +5,8 @@ import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.calculateEndPadding
+import androidx.compose.foundation.layout.calculateStartPadding
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
@@ -20,11 +22,20 @@ import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.ui.text.TextMeasurer
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 
@@ -120,6 +131,22 @@ fun ConfirmActionDialogContent(
         BoxWithConstraints(modifier = Modifier.fillMaxWidth()) {
             // 操作按钮按对话框宽度计算，避免文案长度改变视觉重心。
             val actionWidth = maxWidth / 3
+            val layoutDirection = LocalLayoutDirection.current
+            val actionLabelMaxWidth =
+                actionWidth -
+                    ButtonDefaults.ContentPadding.calculateStartPadding(layoutDirection) -
+                    ButtonDefaults.ContentPadding.calculateEndPadding(layoutDirection)
+            val actionLabelMaxWidthPx =
+                with(LocalDensity.current) {
+                    actionLabelMaxWidth.roundToPx().coerceAtLeast(0)
+                }
+            val actionLabelStyle =
+                rememberActionLabelStyle(
+                    texts = listOfNotNull(dismissText, confirmText),
+                    maxWidthPx = actionLabelMaxWidthPx,
+                    baseStyle = MaterialTheme.typography.labelLarge,
+                    textMeasurer = rememberTextMeasurer(),
+                )
 
             Column(
                 modifier = Modifier.padding(horizontal = 28.dp, vertical = 28.dp),
@@ -183,7 +210,12 @@ fun ConfirmActionDialogContent(
                         ) {
                             Text(
                                 text = text,
-                                style = MaterialTheme.typography.labelLarge,
+                                modifier = Modifier.fillMaxWidth(),
+                                textAlign = TextAlign.Center,
+                                maxLines = 1,
+                                softWrap = false,
+                                overflow = TextOverflow.Ellipsis,
+                                style = actionLabelStyle,
                             )
                         }
                     }
@@ -204,7 +236,12 @@ fun ConfirmActionDialogContent(
                     ) {
                         Text(
                             text = confirmText,
-                            style = MaterialTheme.typography.labelLarge,
+                            modifier = Modifier.fillMaxWidth(),
+                            textAlign = TextAlign.Center,
+                            maxLines = 1,
+                            softWrap = false,
+                            overflow = TextOverflow.Ellipsis,
+                            style = actionLabelStyle,
                         )
                     }
                 }
@@ -212,3 +249,32 @@ fun ConfirmActionDialogContent(
         }
     }
 }
+
+@Composable
+private fun rememberActionLabelStyle(
+    texts: List<String>,
+    maxWidthPx: Int,
+    baseStyle: TextStyle,
+    textMeasurer: TextMeasurer,
+): TextStyle =
+    remember(texts, maxWidthPx, baseStyle, textMeasurer) {
+        val fontSize =
+            actionLabelFontSizes.firstOrNull { candidate ->
+                texts.all { text ->
+                    !textMeasurer
+                        .measure(
+                            text = AnnotatedString(text),
+                            style = baseStyle.copy(fontSize = candidate),
+                            maxLines = 1,
+                            softWrap = false,
+                            overflow = TextOverflow.Clip,
+                            constraints = Constraints(maxWidth = maxWidthPx),
+                        ).hasVisualOverflow
+                }
+            } ?: actionLabelFontSizes.last()
+
+        // 双按钮共用同一字号，避免仅长文案缩小后破坏操作区的视觉平衡。
+        baseStyle.copy(fontSize = fontSize)
+    }
+
+private val actionLabelFontSizes = listOf(14.sp, 13.sp, 12.sp)
