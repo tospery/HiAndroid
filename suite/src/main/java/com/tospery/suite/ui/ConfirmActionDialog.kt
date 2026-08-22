@@ -42,6 +42,7 @@ enum class ConfirmActionStyle {
  * 跨业务通用的二次确认弹窗。
  *
  * 文案与确认操作的语义由业务调用方提供，组件只负责统一的 Android 平台交互与视觉层级。
+ * [supportingContent] 用于在说明下方放置调用方拥有语义的补充内容。
  * 自定义布局确保标题、说明和操作区的对齐方式不会随平台默认 [androidx.compose.material3.AlertDialog] 改变。
  */
 @Composable
@@ -55,6 +56,9 @@ fun ConfirmActionDialog(
     confirmActionStyle: ConfirmActionStyle = ConfirmActionStyle.PRIMARY,
     messageMaxVisibleLines: Int? = null,
     dismissible: Boolean = true,
+    confirmEnabled: Boolean = true,
+    dismissEnabled: Boolean = true,
+    supportingContent: (@Composable () -> Unit)? = null,
 ) {
     Dialog(
         onDismissRequest = {
@@ -77,6 +81,9 @@ fun ConfirmActionDialog(
             confirmActionStyle = confirmActionStyle,
             messageMaxVisibleLines = messageMaxVisibleLines,
             modifier = Modifier.padding(horizontal = 24.dp),
+            confirmEnabled = confirmEnabled,
+            dismissEnabled = dismissEnabled,
+            supportingContent = supportingContent,
         )
     }
 }
@@ -95,6 +102,9 @@ fun ConfirmActionDialogContent(
     confirmActionStyle: ConfirmActionStyle = ConfirmActionStyle.PRIMARY,
     messageMaxVisibleLines: Int? = null,
     modifier: Modifier = Modifier,
+    confirmEnabled: Boolean = true,
+    dismissEnabled: Boolean = true,
+    supportingContent: (@Composable () -> Unit)? = null,
 ) {
     require(messageMaxVisibleLines == null || messageMaxVisibleLines > 0) {
         "messageMaxVisibleLines 必须大于 0。"
@@ -147,6 +157,12 @@ fun ConfirmActionDialogContent(
                     )
                 }
 
+                supportingContent?.let { content ->
+                    // 补充内容保留调用方语义；组件只统一它在说明与操作区之间的位置。
+                    Spacer(modifier = Modifier.height(12.dp))
+                    content()
+                }
+
                 Spacer(modifier = Modifier.height(28.dp))
                 Row(
                     modifier = Modifier.fillMaxWidth(),
@@ -161,6 +177,7 @@ fun ConfirmActionDialogContent(
                     dismissText?.let { text ->
                         OutlinedButton(
                             onClick = onDismiss,
+                            enabled = dismissEnabled,
                             modifier = Modifier.width(actionWidth),
                             shape = RoundedCornerShape(14.dp),
                         ) {
@@ -172,6 +189,7 @@ fun ConfirmActionDialogContent(
                     }
                     Button(
                         onClick = onConfirm,
+                        enabled = confirmEnabled,
                         modifier = Modifier.width(actionWidth),
                         shape = RoundedCornerShape(14.dp),
                         colors =

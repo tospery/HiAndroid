@@ -4,6 +4,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.width
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
 import androidx.compose.material3.Typography
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -12,6 +13,7 @@ import androidx.compose.ui.test.hasClickAction
 import androidx.compose.ui.test.hasScrollAction
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.onRoot
@@ -56,6 +58,33 @@ class ConfirmActionDialogTest {
 
         assertEquals(1, dismissedCount)
         assertEquals(1, confirmedCount)
+    }
+
+    @Test
+    fun supportingContentIsDisplayedAndActionsCanBeDisabled() {
+        composeTestRule.setContent {
+            MaterialTheme {
+                ConfirmActionDialogContent(
+                    title = "停止生成并返回？",
+                    message = "停止后仍会按当前进度结算 Token。",
+                    confirmText = "正在停止…",
+                    dismissText = "继续查看",
+                    onConfirm = {},
+                    onDismiss = {},
+                    modifier = Modifier.width(360.dp),
+                    confirmEnabled = false,
+                    dismissEnabled = false,
+                    supportingContent = {
+                        Text(text = "停止请求提交失败，当前生成仍在继续。")
+                    },
+                )
+            }
+        }
+
+        composeTestRule.onNodeWithText("停止请求提交失败，当前生成仍在继续。")
+            .assertIsDisplayed()
+        composeTestRule.onNodeWithText("正在停止…").assertIsNotEnabled()
+        composeTestRule.onNodeWithText("继续查看").assertIsNotEnabled()
     }
 
     @Test
