@@ -3,7 +3,7 @@ package com.tospery.github.trending
 /**
  * GitHub 相关能力对外暴露的统一结果。
  *
- * 不直接依赖 HiGit 的 AppResult，避免通用 GitHub 模型库绑定具体业务项目。
+ * 不直接依赖 AtlasHub 的 AppResult，避免通用 GitHub 模型库绑定具体业务项目。
  */
 sealed interface GitHubTrendingResult<out DATA> {
     data class Success<out DATA>(

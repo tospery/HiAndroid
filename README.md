@@ -1,10 +1,10 @@
-# Tospery Android Toolkit
+# HiAndroid
 
-Reusable Kotlin and Android libraries extracted from the HiGit project.
+Reusable Kotlin and Android libraries extracted from the AtlasHub project.
 
-The toolkit provides platform-independent abstractions, Android and
+HiAndroid provides platform-independent abstractions, Android and
 Jetpack Compose utilities, Retrofit integration, and reusable GitHub
-models and GitHub Trending parsing APIs. It does not contain HiGit
+models and GitHub Trending parsing APIs. It does not contain AtlasHub
 application-specific business logic.
 
 > **Status:** This project is in pre-release development. Public APIs may change before `1.0.0`.
@@ -35,8 +35,8 @@ application-specific business logic.
 Clone the repository and run the complete verification suite:
 
 ```bash
-git clone https://github.com/tospery/android-toolkit.git
-cd android-toolkit
+git clone https://github.com/tospery/HiAndroid.git
+cd HiAndroid
 ./gradlew clean check
 ```
 
@@ -89,7 +89,7 @@ Add the following to the consuming project's `settings.gradle.kts` and
 adjust the local path as needed:
 
 ```kotlin
-includeBuild("../android-toolkit") {
+includeBuild("../HiAndroid") {
     dependencySubstitution {
         substitute(module("com.tospery:base"))
             .using(project(":base"))
@@ -119,7 +119,7 @@ dependencies {
 }
 ```
 
-Gradle then compiles the local Toolkit source instead of downloading the
+Gradle then compiles the local HiAndroid source instead of downloading the
 matching Maven artifact. Removing or disabling `includeBuild` switches
 the consumer back to the published artifact without changing dependency
 declarations.
@@ -136,5 +136,5 @@ The project follows semantic versioning:
 
 ## License
 
-Tospery Android Toolkit is licensed under the
+HiAndroid is licensed under the
 [Apache License 2.0](LICENSE).

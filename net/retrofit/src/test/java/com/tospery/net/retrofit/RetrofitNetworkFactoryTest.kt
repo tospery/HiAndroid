@@ -166,7 +166,7 @@ class RetrofitNetworkFactoryTest {
             LogRegistry.install(logger)
             val config = RetrofitNetworkConfig(
                 baseUrl = server.url("/").toString(),
-                defaultHeaders = mapOf("X-Client-Id" to "higit"),
+                defaultHeaders = mapOf("X-Client-Id" to "atlashub"),
             )
             val client = RetrofitNetworkFactory.createOkHttpClient(
                 config = config,
@@ -185,7 +185,7 @@ class RetrofitNetworkFactoryTest {
 
             val messages = logger.entries.map { it.message }
             assertEquals("[POST]${server.url("/v1/github/login")}", messages[0])
-            assertEquals("X-Client-Id: higit", messages[1])
+            assertEquals("X-Client-Id: atlashub", messages[1])
             assertTrue(messages[1].contains("Authorization").not())
             assertEquals(
                 """{"githubAccessToken":"client-secret","client":{"platform":"android"}}""",

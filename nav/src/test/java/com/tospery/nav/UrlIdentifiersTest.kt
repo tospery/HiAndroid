@@ -6,21 +6,21 @@ import org.junit.Test
 class UrlIdentifiersTest {
     @Test
     fun schemeNormalizesToLowercase() {
-        assertEquals("higit", UrlScheme("HiGit").normalized())
+        assertEquals("atlashub", UrlScheme("AtlasHub").normalized())
     }
 
     @Test(expected = IllegalArgumentException::class)
     fun schemeMustNotContainSeparator() {
-        UrlScheme("higit://")
+        UrlScheme("atlashub://")
     }
 
     @Test
     fun hostNormalizesToLowercase() {
-        assertEquals("higit.com", UrlHost("HiGit.com").normalized())
+        assertEquals("atlashub.com", UrlHost("AtlasHub.com").normalized())
     }
 
     @Test(expected = IllegalArgumentException::class)
     fun hostMustNotContainPath() {
-        UrlHost("higit.com/about")
+        UrlHost("atlashub.com/about")
     }
 }

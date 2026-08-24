@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""校验 Toolkit 发布到 Maven Local 的构件和内部依赖。"""
+"""校验 HiAndroid 发布到 Maven Local 的构件和内部依赖。"""
 
 from pathlib import Path
 from xml.etree import ElementTree

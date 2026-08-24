@@ -9,13 +9,13 @@ class ShareTest {
     fun contentAppendsUrlWithOneLineBreak() {
         val content =
             ShareContent(
-                title = "HiGit",
+                title = "AtlasHub",
                 text = "Explore GitHub",
-                url = "https://github.com/tospery/HiGit",
+                url = "https://github.com/tospery/AtlasHub",
             )
 
         assertEquals(
-            "Explore GitHub\nhttps://github.com/tospery/HiGit",
+            "Explore GitHub\nhttps://github.com/tospery/AtlasHub",
             content.textWithUrl,
         )
     }

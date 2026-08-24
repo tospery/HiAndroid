@@ -16,8 +16,8 @@ class NavOverlayRouteTest {
 
         assertEquals("dialog?id=clearcache", overlay.toNavRoute().value)
         assertEquals(
-            "higit://dialog?id=clearcache",
-            overlay.toUri(UrlScheme("higit")),
+            "atlashub://dialog?id=clearcache",
+            overlay.toUri(UrlScheme("atlashub")),
         )
         assertEquals(
             overlay,

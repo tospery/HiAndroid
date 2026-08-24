@@ -22,7 +22,7 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "android-toolkit"
+rootProject.name = "HiAndroid"
 
 include(":base")
 include(":core")

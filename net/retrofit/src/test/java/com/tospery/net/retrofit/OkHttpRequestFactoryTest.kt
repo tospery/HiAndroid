@@ -54,7 +54,7 @@ class OkHttpRequestFactoryTest {
                 method = HttpMethod.POST,
                 endpoint = Endpoint.RelativeUrl("repos"),
                 body = RequestBody.Text(
-                    value = """{"name":"HiGit"}""",
+                    value = """{"name":"AtlasHub"}""",
                     contentType = "application/json",
                 ),
             ),

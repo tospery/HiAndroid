@@ -62,7 +62,7 @@ abstract class GenerateModuleMetadataTask : DefaultTask() {
 }
 
 /**
- * 为所有 Toolkit 子模块注册模块元数据生成任务。
+ * 为所有 HiAndroid 子模块注册模块元数据生成任务。
  */
 subprojects {
     val moduleProjectPath = path
@@ -113,7 +113,7 @@ subprojects {
 }
 
 /**
- * 单个 Toolkit 模块的 Maven 发布元数据。
+ * 单个 HiAndroid 模块的 Maven 发布元数据。
  */
 data class MavenModuleMetadata(
     val artifactId: String,
@@ -121,17 +121,17 @@ data class MavenModuleMetadata(
     val description: String,
 )
 
-val toolkitGroupId = "com.tospery"
-val toolkitVersion = "0.0.2"
-val toolkitRepositoryUrl =
-    "https://github.com/tospery/android-toolkit"
+val hiAndroidGroupId = "com.tospery"
+val hiAndroidVersion = "0.0.2"
+val hiAndroidRepositoryUrl =
+    "https://github.com/tospery/HiAndroid"
 
 /**
  * Maven 发布模块白名单。
  *
  * Gradle 模块路径与 Maven artifactId 在此处集中映射。
  */
-val toolkitPublicationModules = mapOf(
+val hiAndroidPublicationModules = mapOf(
     ":base" to MavenModuleMetadata(
         artifactId = "base",
         displayName = "Tospery Base",
@@ -229,32 +229,32 @@ val toolkitPublicationModules = mapOf(
  */
 subprojects {
     val publicationMetadata =
-        toolkitPublicationModules[path] ?: return@subprojects
+        hiAndroidPublicationModules[path] ?: return@subprojects
 
     // 嵌套 model/core 与根 core 的叶子名称相同，需要使用唯一的本地组件 group。
     // Maven 发布仍由 coordinates() 固定为 com.tospery:github-model-core。
     val compositeProjectGroup =
         if (path == ":github:model:core") {
-            "$toolkitGroupId.github.model"
+            "$hiAndroidGroupId.github.model"
         } else {
-            toolkitGroupId
+            hiAndroidGroupId
         }
 
     group = compositeProjectGroup
-    version = toolkitVersion
+    version = hiAndroidVersion
 
     // Maven 变体使用实际发布 artifactId；Composite 变体保留本地项目身份。
     val publicationCapability =
         listOf(
-            toolkitGroupId,
+            hiAndroidGroupId,
             publicationMetadata.artifactId,
-            toolkitVersion,
+            hiAndroidVersion,
         ).joinToString(":")
     val projectCapability =
         listOf(
             compositeProjectGroup,
             project.name,
-            toolkitVersion,
+            hiAndroidVersion,
         ).joinToString(":")
     // 为纯 JVM 模块的公开 API 和运行时变体声明发布 capability。
     plugins.withId("java-library") {
@@ -324,13 +324,13 @@ subprojects {
         }
 
         // Maven JAR 没有 Kotlin 平台属性，而 Composite Build 会直接选择项目变体。
-        // 额外提供 androidJvm 兼容变体，使 Android 模块能够消费纯 JVM Toolkit 模块。
+        // 额外提供 androidJvm 兼容变体，使 Android 模块能够消费纯 JVM HiAndroid 模块。
         val isAndroidStudioSync =
             providers.systemProperty("idea.sync.active")
                 .map(String::toBoolean)
                 .getOrElse(false)
         val publishAndroidJvmCompatVariants =
-            providers.gradleProperty("toolkit.publish.android.jvm.compat.variants")
+            providers.gradleProperty("hiandroid.publish.android.jvm.compat.variants")
                 .map(String::toBoolean)
                 .getOrElse(!isAndroidStudioSync)
 
@@ -430,16 +430,16 @@ subprojects {
         // 避免 Maven Local 和常规 CI 在没有私钥时执行签名任务。
 
         coordinates(
-            groupId = toolkitGroupId,
+            groupId = hiAndroidGroupId,
             artifactId = publicationMetadata.artifactId,
-            version = toolkitVersion,
+            version = hiAndroidVersion,
         )
 
         pom {
             name.set(publicationMetadata.displayName)
             description.set(publicationMetadata.description)
             inceptionYear.set("2026")
-            url.set(toolkitRepositoryUrl)
+            url.set(hiAndroidRepositoryUrl)
 
             licenses {
                 license {
@@ -460,14 +460,14 @@ subprojects {
             }
 
             scm {
-                url.set(toolkitRepositoryUrl)
+                url.set(hiAndroidRepositoryUrl)
                 connection.set(
                     "scm:git:git://github.com/tospery/" +
-                        "android-toolkit.git",
+                        "HiAndroid.git",
                 )
                 developerConnection.set(
                     "scm:git:ssh://git@github.com/tospery/" +
-                        "android-toolkit.git",
+                        "HiAndroid.git",
                 )
             }
         }

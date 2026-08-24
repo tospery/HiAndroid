@@ -8,29 +8,29 @@ import org.junit.Test
 
 class UmengUlinkClientTest {
     @Test
-    fun onlyMarkedHiGitUrlsAreRecognizedAsUlinkWakeups() {
+    fun onlyMarkedAtlasHubUrlsAreRecognizedAsUlinkWakeups() {
         val client = client(RecordingSdk())
 
         assertEquals(
             UmengUlinkWakeupUrlClassification.VALID,
             client.classifyWakeupUrl(
-                "higit://tospery.com/ulink?_sdk=umeng&route=octocat",
+                "atlashub://tospery.com/ulink?_sdk=umeng&route=octocat",
             ),
         )
-        assertTrue(client.isUlinkWakeupUrl("higit://tospery.com/ulink?linkid=42"))
+        assertTrue(client.isUlinkWakeupUrl("atlashub://tospery.com/ulink?linkid=42"))
         assertEquals(
             UmengUlinkWakeupUrlClassification.NOT_ULINK,
-            client.classifyWakeupUrl("higit://octocat"),
+            client.classifyWakeupUrl("atlashub://octocat"),
         )
         assertEquals(
             UmengUlinkWakeupUrlClassification.INVALID,
-            client.classifyWakeupUrl("higit://evil.example/ulink?_sdk=umeng"),
+            client.classifyWakeupUrl("atlashub://evil.example/ulink?_sdk=umeng"),
         )
         assertEquals(
             UmengUlinkWakeupUrlClassification.INVALID,
             client.classifyWakeupUrl("https://example.com/?_sdk=umeng"),
         )
-        assertFalse(client.isUlinkWakeupUrl("higit://tospery.com/ulink?_sdk=umeng#fragment"))
+        assertFalse(client.isUlinkWakeupUrl("atlashub://tospery.com/ulink?_sdk=umeng#fragment"))
     }
 
     @Test
@@ -42,7 +42,7 @@ class UmengUlinkClientTest {
         client.requestDeferredLink(onResult = results::add)
         sdk.installCallback?.onInstall(
             parameters = mapOf("invite" to "abc"),
-            wakeupUrl = "higit://tospery.com/ulink?_sdk=umeng&route=octocat",
+            wakeupUrl = "atlashub://tospery.com/ulink?_sdk=umeng&route=octocat",
         )
         sdk.handleCallback?.onLink(
             path = "/ulink",
@@ -70,7 +70,7 @@ class UmengUlinkClientTest {
         val results = mutableListOf<UmengUlinkResult>()
 
         client.handleWakeupUrl(
-            "higit://tospery.com/ulink?_sdk=umeng",
+            "atlashub://tospery.com/ulink?_sdk=umeng",
             results::add,
         )
         client.requestDeferredLink(onResult = results::add)
@@ -88,7 +88,7 @@ class UmengUlinkClientTest {
             UmengUlinkClient(
                 sdk = sdk,
                 sdkState = SdkInitializationState { initialized },
-                appScheme = "higit",
+                appScheme = "atlashub",
                 concatenationHost = "tospery.com",
             )
         val results = mutableListOf<UmengUlinkResult>()
@@ -97,7 +97,7 @@ class UmengUlinkClientTest {
         initialized = false
         sdk.installCallback?.onInstall(
             parameters = emptyMap(),
-            wakeupUrl = "higit://tospery.com/ulink?_sdk=umeng",
+            wakeupUrl = "atlashub://tospery.com/ulink?_sdk=umeng",
         )
 
         assertTrue(results.single() is UmengUlinkResult.Failed)
@@ -111,7 +111,7 @@ class UmengUlinkClientTest {
         UmengUlinkClient(
             sdk = sdk,
             sdkState = SdkInitializationState { initialized },
-            appScheme = "higit",
+            appScheme = "atlashub",
             concatenationHost = "tospery.com",
         )
 }

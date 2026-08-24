@@ -7,21 +7,21 @@ import org.junit.Test
 class UrlNavigationClassifierTest {
     private val classifier = UrlNavigationClassifier(
         config = UrlNavigationConfig(
-            appSchemes = setOf(UrlScheme("higit")),
-            trustedHosts = setOf(UrlHost("higit.com")),
+            appSchemes = setOf(UrlScheme("atlashub")),
+            trustedHosts = setOf(UrlHost("atlashub.com")),
         ),
     )
 
     @Test
     fun customSchemeUsesHostAsInternalRoutePath() {
-        val target = classifier.classify("higit://about")
+        val target = classifier.classify("atlashub://about")
 
         assertEquals(
             UrlNavigationTarget.InternalRoute(
                 route = NavRoute("about"),
                 origin =
                     InternalRouteOrigin.AppScheme(
-                        scheme = UrlScheme("higit"),
+                        scheme = UrlScheme("atlashub"),
                     ),
             ),
             target,
@@ -30,14 +30,14 @@ class UrlNavigationClassifierTest {
 
     @Test
     fun customSchemeSupportsNonDnsRouteAuthority() {
-        val target = classifier.classify("higit://received_events")
+        val target = classifier.classify("atlashub://received_events")
 
         assertEquals(
             UrlNavigationTarget.InternalRoute(
                 route = NavRoute("received_events"),
                 origin =
                     InternalRouteOrigin.AppScheme(
-                        scheme = UrlScheme("higit"),
+                        scheme = UrlScheme("atlashub"),
                     ),
             ),
             target,
@@ -54,7 +54,7 @@ class UrlNavigationClassifierTest {
 
         val target =
             classifier.classify(
-                overlay.toUri(UrlScheme("higit")),
+                overlay.toUri(UrlScheme("atlashub")),
             )
 
         assertEquals(
@@ -62,7 +62,7 @@ class UrlNavigationClassifierTest {
                 route = NavRoute("dialog?id=clearcache"),
                 origin =
                     InternalRouteOrigin.AppScheme(
-                        scheme = UrlScheme("higit"),
+                        scheme = UrlScheme("atlashub"),
                     ),
             ),
             target,
@@ -71,7 +71,7 @@ class UrlNavigationClassifierTest {
 
     @Test
     fun appLinkUsesPathAsInternalRoutePath() {
-        val target = classifier.classify("https://higit.com/about")
+        val target = classifier.classify("https://atlashub.com/about")
 
         assertEquals(
             UrlNavigationTarget.InternalRoute(
@@ -79,7 +79,7 @@ class UrlNavigationClassifierTest {
                 origin =
                     InternalRouteOrigin.TrustedWebHost(
                         scheme = UrlScheme("https"),
-                        host = UrlHost("higit.com"),
+                        host = UrlHost("atlashub.com"),
                     ),
             ),
             target,
@@ -88,7 +88,7 @@ class UrlNavigationClassifierTest {
 
     @Test
     fun appLinkPreservesEncodedPathSeparatorsForRouteValidation() {
-        val target = classifier.classify("https://higit.com/owner/repo/blob/main/src%2Fmain/App.kt")
+        val target = classifier.classify("https://atlashub.com/owner/repo/blob/main/src%2Fmain/App.kt")
 
         assertEquals(
             UrlNavigationTarget.InternalRoute(
@@ -96,7 +96,7 @@ class UrlNavigationClassifierTest {
                 origin =
                     InternalRouteOrigin.TrustedWebHost(
                         scheme = UrlScheme("https"),
-                        host = UrlHost("higit.com"),
+                        host = UrlHost("atlashub.com"),
                     ),
             ),
             target,
@@ -155,14 +155,14 @@ class UrlNavigationClassifierTest {
 
     @Test
     fun customSchemeWithoutRoutePathIsUnknown() {
-        val target = classifier.classify("higit://")
+        val target = classifier.classify("atlashub://")
 
         assertTrue(target is UrlNavigationTarget.Unknown)
     }
 
     @Test
     fun appLinkWithoutRoutePathIsUnknown() {
-        val target = classifier.classify("https://higit.com")
+        val target = classifier.classify("https://atlashub.com")
 
         assertTrue(target is UrlNavigationTarget.Unknown)
     }

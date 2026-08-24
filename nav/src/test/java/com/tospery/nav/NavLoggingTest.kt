@@ -13,11 +13,11 @@ class NavLoggingTest {
     @Test
     fun `navigation log URL redacts query values and fragment`() {
         val safeUrl =
-            "higit://login?code=secret-code&state=secret-state#private"
+            "atlashub://login?code=secret-code&state=secret-state#private"
                 .redactNavigationUrl()
 
         assertEquals(
-            "higit://login?code=<redacted>&state=<redacted>#<redacted>",
+            "atlashub://login?code=<redacted>&state=<redacted>#<redacted>",
             safeUrl,
         )
         assertFalse(safeUrl.contains("secret-code"))

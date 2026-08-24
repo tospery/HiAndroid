@@ -26,7 +26,7 @@ replay_pid*
 
 # Kotlin Gradle plugin data, see https://kotlinlang.org/docs/whatsnew20.html#new-directory-for-kotlin-data-in-gradle-projects
 .kotlin/
-# Tospery Android Toolkit generated files
+# Tospery Android HiAndroid generated files
 
 # Gradle 与 Kotlin 构建缓存、所有模块的 build 目录。
 .gradle/
