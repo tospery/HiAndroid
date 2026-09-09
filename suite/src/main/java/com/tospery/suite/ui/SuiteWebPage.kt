@@ -3,6 +3,7 @@ package com.tospery.suite.ui
 import android.webkit.CookieManager
 import android.graphics.Bitmap
 import android.net.http.SslError
+import android.os.Bundle
 import android.webkit.RenderProcessGoneDetail
 import android.webkit.SslErrorHandler
 import android.webkit.WebChromeClient
@@ -13,6 +14,7 @@ import android.webkit.WebSettings
 import android.webkit.WebView
 import android.webkit.WebViewClient
 import androidx.activity.compose.BackHandler
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
@@ -20,15 +22,25 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.background
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.ArrowBack
+import androidx.compose.material.icons.automirrored.outlined.ArrowForward
+import androidx.compose.material.icons.outlined.MoreVert
 import androidx.compose.material.icons.outlined.OpenInBrowser
+import androidx.compose.material.icons.outlined.Refresh
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.SnackbarResult
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -36,7 +48,9 @@ import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.rememberUpdatedState
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -45,6 +59,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import com.tospery.suite.R
+import kotlinx.coroutines.launch
 import java.net.URI
 
 /**
@@ -71,11 +86,62 @@ fun SuiteWebPage(
     val currentOnOpenExternal by rememberUpdatedState(onOpenExternal)
     val currentOnNavigationRequest by rememberUpdatedState(onNavigationRequest)
     val currentOnLoadFailure by rememberUpdatedState(onLoadFailure)
-    var documentTitle by remember(url) { mutableStateOf("") }
+    var documentTitle by rememberSaveable(url) { mutableStateOf("") }
     var loadingProgress by remember(url) { mutableIntStateOf(0) }
-    var activeUrl by remember(url) { mutableStateOf(url) }
+    var activeUrl by rememberSaveable(url) { mutableStateOf(url) }
+    var lastRenderedUrl by rememberSaveable(url) { mutableStateOf(url) }
     var activeWebView by remember(url) { mutableStateOf<WebView?>(null) }
+    var canGoBack by remember(url) { mutableStateOf(false) }
+    var canGoForward by remember(url) { mutableStateOf(false) }
+    var hasRenderedDocument by rememberSaveable(url) { mutableStateOf(false) }
+    var savedWebViewState by rememberSaveable(url) { mutableStateOf<Bundle?>(null) }
+    var savedWebViewScrollX by rememberSaveable(url) { mutableIntStateOf(0) }
+    var savedWebViewScrollY by rememberSaveable(url) { mutableIntStateOf(0) }
+    var shouldRestoreSavedScroll by remember(url) { mutableStateOf(false) }
     var hasFatalRendererFailure by remember(url) { mutableStateOf(false) }
+    var discardReleasedWebViewState by remember(url) { mutableStateOf(false) }
+    var webViewGeneration by remember(url) { mutableIntStateOf(0) }
+    var errorPageFailure by remember(url) { mutableStateOf<SuiteWebLoadFailure?>(null) }
+    var isMenuExpanded by remember { mutableStateOf(false) }
+    val snackbarHostState = remember { SnackbarHostState() }
+    val scope = rememberCoroutineScope()
+    val updateNavigationAvailability: (WebView) -> Unit = { webView ->
+        canGoBack = webView.canGoBack()
+        canGoForward = webView.canGoForward()
+    }
+    val saveWebSession: (WebView) -> Unit = { webView ->
+        savedWebViewState = Bundle().also(webView::saveState)
+        savedWebViewScrollX = webView.scrollX
+        savedWebViewScrollY = webView.scrollY
+    }
+    val restoreLatestRenderedPage: () -> Unit = {
+        activeUrl = lastRenderedUrl
+        discardReleasedWebViewState = true
+        webViewGeneration++
+    }
+    val retryNavigation: (String) -> Unit = { targetUrl ->
+        errorPageFailure = null
+        val webView = activeWebView
+        if (webView == null || hasFatalRendererFailure) {
+            savedWebViewState = null
+            activeUrl = targetUrl
+            webViewGeneration++
+            hasFatalRendererFailure = false
+        } else {
+            webView.loadUrl(targetUrl)
+        }
+    }
+    val refreshWebPage: () -> Unit = {
+        errorPageFailure = null
+        val webView = activeWebView
+        if (webView == null || hasFatalRendererFailure) {
+            savedWebViewState = null
+            webViewGeneration++
+            hasFatalRendererFailure = false
+        } else {
+            webView.reload()
+        }
+    }
 
     LaunchedEffect(url, isValidUrl) {
         if (!isValidUrl) {
@@ -87,10 +153,11 @@ fun SuiteWebPage(
             )
         }
     }
-    val navigateBack = {
+    val navigateWebHistoryOrBack = {
         val currentWebView = activeWebView
         if (currentWebView?.canGoBack() == true) {
             currentWebView.goBack()
+            updateNavigationAvailability(currentWebView)
         } else {
             currentOnBack()
         }
@@ -98,12 +165,13 @@ fun SuiteWebPage(
 
     BackHandler(
         enabled = isValidUrl,
-        onBack = navigateBack,
+        onBack = navigateWebHistoryOrBack,
     )
 
     Scaffold(
         modifier = modifier,
         contentWindowInsets = WindowInsets(0, 0, 0, 0),
+        snackbarHost = { SuiteSnackbarHost(hostState = snackbarHostState) },
         topBar = {
             Column {
                 SuiteCenterAlignedTopAppBar(
@@ -115,7 +183,7 @@ fun SuiteWebPage(
                         )
                     },
                     navigationIcon = {
-                        IconButton(onClick = navigateBack) {
+                        IconButton(onClick = currentOnBack) {
                             Icon(
                                 imageVector = Icons.AutoMirrored.Outlined.ArrowBack,
                                 contentDescription =
@@ -124,17 +192,92 @@ fun SuiteWebPage(
                         }
                     },
                     actions = {
-                        if (isValidUrl && currentOnOpenExternal != null) {
+                        if (isValidUrl) {
+                            Box {
                             IconButton(
                                 onClick = {
-                                    currentOnOpenExternal?.invoke(activeUrl)
+                                        isMenuExpanded = true
                                 },
                             ) {
                                 Icon(
-                                    imageVector = Icons.Outlined.OpenInBrowser,
+                                    imageVector = Icons.Outlined.MoreVert,
                                     contentDescription =
-                                        stringResource(R.string.suite_web_open_external),
+                                        stringResource(R.string.suite_web_menu),
                                 )
+                            }
+                                DropdownMenu(
+                                    expanded = isMenuExpanded,
+                                    onDismissRequest = { isMenuExpanded = false },
+                                ) {
+                                    DropdownMenuItem(
+                                        text = { Text(stringResource(R.string.suite_web_refresh)) },
+                                        onClick = {
+                                            isMenuExpanded = false
+                                            refreshWebPage()
+                                        },
+                                        leadingIcon = {
+                                            Icon(
+                                                imageVector = Icons.Outlined.Refresh,
+                                                contentDescription = null,
+                                            )
+                                        },
+                                    )
+                                    HorizontalDivider()
+                                    DropdownMenuItem(
+                                        text = {
+                                            Text(stringResource(R.string.suite_web_history_back))
+                                        },
+                                        enabled = canGoBack,
+                                        onClick = {
+                                            isMenuExpanded = false
+                                            activeWebView?.goBack()
+                                        },
+                                        leadingIcon = {
+                                            Icon(
+                                                imageVector = Icons.AutoMirrored.Outlined.ArrowBack,
+                                                contentDescription = null,
+                                            )
+                                        },
+                                    )
+                                    DropdownMenuItem(
+                                        text = {
+                                            Text(stringResource(R.string.suite_web_history_forward))
+                                        },
+                                        enabled = canGoForward,
+                                        onClick = {
+                                            isMenuExpanded = false
+                                            activeWebView?.goForward()
+                                        },
+                                        leadingIcon = {
+                                            Icon(
+                                                imageVector = Icons.AutoMirrored.Outlined.ArrowForward,
+                                                contentDescription = null,
+                                            )
+                                        },
+                                    )
+                                    if (currentOnOpenExternal != null) {
+                                        HorizontalDivider()
+                                        DropdownMenuItem(
+                                            text = {
+                                                Text(
+                                                    stringResource(
+                                                        R.string.suite_web_open_external,
+                                                    ),
+                                                )
+                                            },
+                                            onClick = {
+                                                isMenuExpanded = false
+                                                currentOnOpenExternal?.invoke(activeUrl)
+                                            },
+                                            leadingIcon = {
+                                                Icon(
+                                                    imageVector = Icons.Outlined.OpenInBrowser,
+                                                    contentDescription = null,
+                                                )
+                                            },
+                                        )
+                                    }
+                                }
                             }
                         }
                     },
@@ -163,8 +306,9 @@ fun SuiteWebPage(
                     .padding(innerPadding),
             contentAlignment = Alignment.Center,
         ) {
-            if (isValidUrl && !hasFatalRendererFailure) {
-                key(url) {
+            if (isValidUrl) {
+                if (!hasFatalRendererFailure) {
+                key(url, webViewGeneration) {
                     AndroidView(
                         factory = { context ->
                             WebView(context).apply {
@@ -197,6 +341,10 @@ fun SuiteWebPage(
                                     displayZoomControls = false
                                 }
                                 CookieManager.getInstance().setAcceptThirdPartyCookies(this, false)
+                                setOnScrollChangeListener { _, scrollX, scrollY, _, _ ->
+                                    savedWebViewScrollX = scrollX
+                                    savedWebViewScrollY = scrollY
+                                }
 
                                 webViewClient =
                                     object : WebViewClient() {
@@ -208,6 +356,19 @@ fun SuiteWebPage(
                                             favicon: Bitmap?,
                                         ) {
                                             hasReportedCurrentLoadFailure = false
+                                            errorPageFailure = null
+                                            loadingProgress = 0
+                                            updateNavigationAvailability(view)
+                                        }
+
+                                        override fun doUpdateVisitedHistory(
+                                            view: WebView,
+                                            url: String?,
+                                            isReload: Boolean,
+                                        ) {
+                                            super.doUpdateVisitedHistory(view, url, isReload)
+                                            url?.let { activeUrl = it }
+                                            updateNavigationAvailability(view)
                                         }
 
                                         override fun shouldOverrideUrlLoading(
@@ -267,9 +428,11 @@ fun SuiteWebPage(
                                             errorResponse: WebResourceResponse,
                                         ) {
                                             if (request.isForMainFrame) {
-                                                reportLoadFailure(
-                                                    url = request.url.toString(),
-                                                    reason = SuiteWebLoadFailureReason.HTTP,
+                                                currentOnLoadFailure(
+                                                    SuiteWebLoadFailure(
+                                                        url = request.url.toString(),
+                                                        reason = SuiteWebLoadFailureReason.HTTP,
+                                                    ),
                                                 )
                                             }
                                         }
@@ -295,6 +458,7 @@ fun SuiteWebPage(
                                                 reason = SuiteWebLoadFailureReason.RENDERER,
                                             )
                                             hasFatalRendererFailure = true
+                                            discardReleasedWebViewState = true
                                             return true
                                         }
 
@@ -302,8 +466,23 @@ fun SuiteWebPage(
                                             view: WebView,
                                             url: String,
                                         ) {
+                                            if (hasReportedCurrentLoadFailure) return
                                             activeUrl = url
+                                            lastRenderedUrl = url
                                             loadingProgress = 100
+                                            hasRenderedDocument = true
+                                            errorPageFailure = null
+                                            updateNavigationAvailability(view)
+                                            saveWebSession(view)
+                                            if (shouldRestoreSavedScroll) {
+                                                shouldRestoreSavedScroll = false
+                                                view.post {
+                                                    view.scrollTo(
+                                                        savedWebViewScrollX,
+                                                        savedWebViewScrollY,
+                                                    )
+                                                }
+                                            }
                                             view.evaluateJavascript(
                                                 WEB_VIDEO_LAYOUT_FALLBACK_SCRIPT,
                                                 null,
@@ -316,12 +495,36 @@ fun SuiteWebPage(
                                         ) {
                                             if (hasReportedCurrentLoadFailure) return
                                             hasReportedCurrentLoadFailure = true
-                                            currentOnLoadFailure(
-                                                SuiteWebLoadFailure(
-                                                    url = url,
-                                                    reason = reason,
-                                                ),
-                                            )
+                                            val failure = SuiteWebLoadFailure(url = url, reason = reason)
+                                            currentOnLoadFailure(failure)
+                                            when (
+                                                failure.presentationAfter(
+                                                    hasRenderedDocument = hasRenderedDocument,
+                                                )
+                                            ) {
+                                                SuiteWebFailurePresentation.KEEP_WEB_CONTENT -> Unit
+                                                SuiteWebFailurePresentation.ERROR_PAGE -> {
+                                                    errorPageFailure = failure
+                                                }
+
+                                                SuiteWebFailurePresentation.RETRY_SNACKBAR -> {
+                                                    restoreLatestRenderedPage()
+                                                    scope.launch {
+                                                        if (
+                                                            snackbarHostState.showSnackbar(
+                                                                message = context.getString(
+                                                                    R.string.suite_web_load_failed,
+                                                                ),
+                                                                actionLabel = context.getString(
+                                                                    R.string.suite_web_retry,
+                                                                ),
+                                                        ) == SnackbarResult.ActionPerformed
+                                                        ) {
+                                                            retryNavigation(failure.url)
+                                                        }
+                                                    }
+                                                }
+                                            }
                                         }
                                     }
 
@@ -343,7 +546,16 @@ fun SuiteWebPage(
                                         }
                                     }
 
-                                loadUrl(url)
+                                val restoredHistory =
+                                    savedWebViewState
+                                        ?.let(::Bundle)
+                                        ?.let(::restoreState)
+                                shouldRestoreSavedScroll = restoredHistory != null
+                                if (restoredHistory == null) {
+                                    loadUrl(activeUrl)
+                                } else {
+                                    updateNavigationAvailability(this)
+                                }
                             }
                         },
                         modifier = Modifier.fillMaxSize(),
@@ -351,6 +563,10 @@ fun SuiteWebPage(
                             if (activeWebView === releasedWebView) {
                                 activeWebView = null
                             }
+                            if (!discardReleasedWebViewState) {
+                                saveWebSession(releasedWebView)
+                            }
+                            discardReleasedWebViewState = false
                             releasedWebView.onPause()
                             releasedWebView.stopLoading()
                             releasedWebView.webChromeClient = WebChromeClient()
@@ -360,6 +576,13 @@ fun SuiteWebPage(
                         },
                     )
                 }
+                }
+                if (errorPageFailure != null) {
+                    SuiteWebLoadErrorContent(
+                        onRetry = refreshWebPage,
+                        modifier = Modifier.fillMaxSize(),
+                    )
+                }
             } else {
                 Text(
                     text = stringResource(R.string.suite_web_invalid_url),
@@ -367,6 +590,29 @@ fun SuiteWebPage(
                     style = MaterialTheme.typography.bodyLarge,
                 )
             }
+        }
+    }
+}
+
+@Composable
+private fun SuiteWebLoadErrorContent(
+    onRetry: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Column(
+        modifier =
+            modifier
+                .background(MaterialTheme.colorScheme.surfaceContainer),
+        verticalArrangement = Arrangement.Center,
+        horizontalAlignment = Alignment.CenterHorizontally,
+    ) {
+        Text(
+            text = stringResource(R.string.suite_web_load_error),
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            style = MaterialTheme.typography.bodyLarge,
+        )
+        TextButton(onClick = onRetry) {
+            Text(text = stringResource(R.string.suite_web_retry))
         }
     }
 }

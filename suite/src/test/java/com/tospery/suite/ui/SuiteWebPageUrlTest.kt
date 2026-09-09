@@ -74,4 +74,37 @@ class SuiteWebPageUrlTest {
             Int.MIN_VALUE.toSuiteWebLoadFailureReason(),
         )
     }
+
+    @Test
+    fun serverRenderedHttpErrorPageKeepsWebContentVisible() {
+        assertEquals(
+            SuiteWebFailurePresentation.KEEP_WEB_CONTENT,
+            SuiteWebLoadFailure(
+                url = "https://example.com/missing",
+                reason = SuiteWebLoadFailureReason.HTTP,
+            ).presentationAfter(hasRenderedDocument = false),
+        )
+    }
+
+    @Test
+    fun initialDocumentFailureShowsErrorPage() {
+        assertEquals(
+            SuiteWebFailurePresentation.ERROR_PAGE,
+            SuiteWebLoadFailure(
+                url = "https://example.com",
+                reason = SuiteWebLoadFailureReason.NETWORK,
+            ).presentationAfter(hasRenderedDocument = false),
+        )
+    }
+
+    @Test
+    fun laterNavigationFailureKeepsRenderedContentAndOffersRetry() {
+        assertEquals(
+            SuiteWebFailurePresentation.RETRY_SNACKBAR,
+            SuiteWebLoadFailure(
+                url = "https://example.com/next",
+                reason = SuiteWebLoadFailureReason.NETWORK,
+            ).presentationAfter(hasRenderedDocument = true),
+        )
+    }
 }

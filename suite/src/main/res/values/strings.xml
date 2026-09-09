@@ -1,9 +1,16 @@
 <resources>
     <string name="suite_clear_text">Clear text</string>
     <string name="suite_close_dialog">Close dialog</string>
-    <string name="suite_web_back">Go back</string>
+    <string name="suite_web_back">Back to app</string>
+    <string name="suite_web_menu">Web page options</string>
+    <string name="suite_web_refresh">Refresh</string>
+    <string name="suite_web_history_back">Back</string>
+    <string name="suite_web_history_forward">Forward</string>
     <string name="suite_web_open_external">Open in browser</string>
     <string name="suite_web_invalid_url">This link cannot be opened.</string>
+    <string name="suite_web_load_error">Unable to load this page.</string>
+    <string name="suite_web_retry">Retry</string>
+    <string name="suite_web_load_failed">Page loading failed.</string>
     <string name="suite_image_viewer_retry">Retry</string>
     <string name="suite_image_viewer_image_error_title">Unable to display image</string>
     <string name="suite_image_viewer_image_error_description">The image could not be downloaded or decoded.</string>
