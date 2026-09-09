@@ -56,7 +56,10 @@ data class SuiteMediaRequest(
     }
 }
 
-/** 根据 URL path 或文件路径识别常见音视频类型，不读取 query，避免误判网页参数。 */
+/**
+ * 根据 URL path 或文件路径识别无歧义的常见音视频类型，不读取 query，避免误判网页参数。
+ * 仅凭扩展名无法区分的格式应由调用方显式提供媒体类型。
+ */
 object SuiteMediaUrlDetector {
     fun detect(value: String?): SuiteMediaKind? {
         val normalizedValue = value?.trim()?.takeIf(String::isNotEmpty) ?: return null
@@ -105,7 +108,6 @@ object SuiteMediaUrlDetector {
             "mpd",
             "mpeg",
             "mpg",
-            "ts",
             "webm",
         )
 }

@@ -29,6 +29,25 @@ class SuiteMediaRequestTest {
     }
 
     @Test
+    fun detectorLeavesAmbiguousTypeScriptPathsUnresolved() {
+        listOf(
+            "scripts/set-version.ts",
+            "types/index.d.ts",
+            "https://example.com/source/MAIN.TS?raw=1",
+        ).forEach { value ->
+            assertNull(value, SuiteMediaUrlDetector.detect(value))
+        }
+    }
+
+    @Test
+    fun explicitVideoRequestStillAcceptsAmbiguousTransportStreamExtension() {
+        SuiteMediaRequest(
+            url = "https://example.com/media/segment.ts",
+            kind = SuiteMediaKind.VIDEO,
+        )
+    }
+
+    @Test
     fun `request accepts remote and content URLs`() {
         SuiteMediaRequest(
             url = "https://example.com/media/movie.mp4",
