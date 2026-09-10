@@ -107,4 +107,26 @@ class SuiteWebPageUrlTest {
             ).presentationAfter(hasRenderedDocument = true),
         )
     }
+
+    @Test
+    fun initialWebPageUsesExitBackActionWithoutCloseControl() {
+        assertEquals(
+            SuiteWebNavigationPresentation(
+                backAction = SuiteWebBackAction.EXIT_WEB_PAGE,
+                showCloseControl = false,
+            ),
+            suiteWebNavigationPresentation(canGoBack = false),
+        )
+    }
+
+    @Test
+    fun webHistoryUsesHistoryBackActionAndShowsCloseControl() {
+        assertEquals(
+            SuiteWebNavigationPresentation(
+                backAction = SuiteWebBackAction.GO_BACK,
+                showCloseControl = true,
+            ),
+            suiteWebNavigationPresentation(canGoBack = true),
+        )
+    }
 }

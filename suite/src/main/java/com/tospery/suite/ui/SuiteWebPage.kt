@@ -21,17 +21,13 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.background
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.ArrowBack
-import androidx.compose.material.icons.automirrored.outlined.ArrowForward
-import androidx.compose.material.icons.outlined.MoreVert
+import androidx.compose.material.icons.outlined.Close
 import androidx.compose.material.icons.outlined.OpenInBrowser
-import androidx.compose.material.icons.outlined.Refresh
-import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
@@ -92,7 +88,6 @@ fun SuiteWebPage(
     var lastRenderedUrl by rememberSaveable(url) { mutableStateOf(url) }
     var activeWebView by remember(url) { mutableStateOf<WebView?>(null) }
     var canGoBack by remember(url) { mutableStateOf(false) }
-    var canGoForward by remember(url) { mutableStateOf(false) }
     var hasRenderedDocument by rememberSaveable(url) { mutableStateOf(false) }
     var savedWebViewState by rememberSaveable(url) { mutableStateOf<Bundle?>(null) }
     var savedWebViewScrollX by rememberSaveable(url) { mutableIntStateOf(0) }
@@ -102,12 +97,10 @@ fun SuiteWebPage(
     var discardReleasedWebViewState by remember(url) { mutableStateOf(false) }
     var webViewGeneration by remember(url) { mutableIntStateOf(0) }
     var errorPageFailure by remember(url) { mutableStateOf<SuiteWebLoadFailure?>(null) }
-    var isMenuExpanded by remember { mutableStateOf(false) }
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
     val updateNavigationAvailability: (WebView) -> Unit = { webView ->
         canGoBack = webView.canGoBack()
-        canGoForward = webView.canGoForward()
     }
     val saveWebSession: (WebView) -> Unit = { webView ->
         savedWebViewState = Bundle().also(webView::saveState)
@@ -153,9 +146,13 @@ fun SuiteWebPage(
             )
         }
     }
+    val navigationPresentation = suiteWebNavigationPresentation(canGoBack)
     val navigateWebHistoryOrBack = {
         val currentWebView = activeWebView
-        if (currentWebView?.canGoBack() == true) {
+        if (
+            navigationPresentation.backAction == SuiteWebBackAction.GO_BACK &&
+            currentWebView != null
+        ) {
             currentWebView.goBack()
             updateNavigationAvailability(currentWebView)
         } else {
@@ -183,101 +180,35 @@ fun SuiteWebPage(
                         )
                     },
                     navigationIcon = {
-                        IconButton(onClick = currentOnBack) {
-                            Icon(
-                                imageVector = Icons.AutoMirrored.Outlined.ArrowBack,
-                                contentDescription =
-                                    stringResource(R.string.suite_web_back),
-                            )
+                        Row {
+                            IconButton(onClick = navigateWebHistoryOrBack) {
+                                Icon(
+                                    imageVector = Icons.AutoMirrored.Outlined.ArrowBack,
+                                    contentDescription =
+                                        stringResource(R.string.suite_web_back),
+                                )
+                            }
+                            if (navigationPresentation.showCloseControl) {
+                                IconButton(onClick = currentOnBack) {
+                                    Icon(
+                                        imageVector = Icons.Outlined.Close,
+                                        contentDescription =
+                                            stringResource(R.string.suite_web_close),
+                                    )
+                                }
+                            }
                         }
                     },
                     actions = {
-                        if (isValidUrl) {
-                            Box {
+                        if (isValidUrl && currentOnOpenExternal != null) {
                             IconButton(
-                                onClick = {
-                                        isMenuExpanded = true
-                                },
+                                onClick = { currentOnOpenExternal?.invoke(activeUrl) },
                             ) {
                                 Icon(
-                                    imageVector = Icons.Outlined.MoreVert,
+                                    imageVector = Icons.Outlined.OpenInBrowser,
                                     contentDescription =
-                                        stringResource(R.string.suite_web_menu),
+                                        stringResource(R.string.suite_web_open_external),
                                 )
-                            }
-                                DropdownMenu(
-                                    expanded = isMenuExpanded,
-                                    onDismissRequest = { isMenuExpanded = false },
-                                ) {
-                                    DropdownMenuItem(
-                                        text = { Text(stringResource(R.string.suite_web_refresh)) },
-                                        onClick = {
-                                            isMenuExpanded = false
-                                            refreshWebPage()
-                                        },
-                                        leadingIcon = {
-                                            Icon(
-                                                imageVector = Icons.Outlined.Refresh,
-                                                contentDescription = null,
-                                            )
-                                        },
-                                    )
-                                    HorizontalDivider()
-                                    DropdownMenuItem(
-                                        text = {
-                                            Text(stringResource(R.string.suite_web_history_back))
-                                        },
-                                        enabled = canGoBack,
-                                        onClick = {
-                                            isMenuExpanded = false
-                                            activeWebView?.goBack()
-                                        },
-                                        leadingIcon = {
-                                            Icon(
-                                                imageVector = Icons.AutoMirrored.Outlined.ArrowBack,
-                                                contentDescription = null,
-                                            )
-                                        },
-                                    )
-                                    DropdownMenuItem(
-                                        text = {
-                                            Text(stringResource(R.string.suite_web_history_forward))
-                                        },
-                                        enabled = canGoForward,
-                                        onClick = {
-                                            isMenuExpanded = false
-                                            activeWebView?.goForward()
-                                        },
-                                        leadingIcon = {
-                                            Icon(
-                                                imageVector = Icons.AutoMirrored.Outlined.ArrowForward,
-                                                contentDescription = null,
-                                            )
-                                        },
-                                    )
-                                    if (currentOnOpenExternal != null) {
-                                        HorizontalDivider()
-                                        DropdownMenuItem(
-                                            text = {
-                                                Text(
-                                                    stringResource(
-                                                        R.string.suite_web_open_external,
-                                                    ),
-                                                )
-                                            },
-                                            onClick = {
-                                                isMenuExpanded = false
-                                                currentOnOpenExternal?.invoke(activeUrl)
-                                            },
-                                            leadingIcon = {
-                                                Icon(
-                                                    imageVector = Icons.Outlined.OpenInBrowser,
-                                                    contentDescription = null,
-                                                )
-                                            },
-                                        )
-                                    }
-                                }
                             }
                         }
                     },
