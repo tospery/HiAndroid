@@ -31,7 +31,7 @@ fun AppHud(
     modifier: Modifier = Modifier,
     message: String? = null,
     showContentContainer: Boolean = true,
-    scrimColor: Color = Color.Black.copy(alpha = 0.24f),
+    scrimColor: Color = MaterialTheme.colorScheme.scrim.copy(alpha = 0.24f),
 ) {
     if (!visible) return
 

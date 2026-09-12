@@ -2,8 +2,11 @@ package com.tospery.suite.ui
 
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Close
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.IconButtonDefaults
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Snackbar
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
@@ -24,10 +27,20 @@ fun SuiteSnackbarHost(
         modifier = modifier,
     ) { snackbarData ->
         Snackbar(
+            containerColor = MaterialTheme.colorScheme.inverseSurface,
+            contentColor = MaterialTheme.colorScheme.inverseOnSurface,
+            actionContentColor = MaterialTheme.colorScheme.inversePrimary,
+            dismissActionContentColor = MaterialTheme.colorScheme.inverseOnSurface,
             action =
                 snackbarData.visuals.actionLabel?.let { actionLabel ->
                     {
-                        TextButton(onClick = snackbarData::performAction) {
+                        TextButton(
+                            onClick = snackbarData::performAction,
+                            colors =
+                                ButtonDefaults.textButtonColors(
+                                    contentColor = MaterialTheme.colorScheme.inversePrimary,
+                                ),
+                        ) {
                             Text(
                                 text = actionLabel,
                                 maxLines = SNACKBAR_MAX_LINES,
@@ -39,7 +52,13 @@ fun SuiteSnackbarHost(
             dismissAction =
                 if (snackbarData.visuals.withDismissAction) {
                     {
-                        IconButton(onClick = snackbarData::dismiss) {
+                        IconButton(
+                            onClick = snackbarData::dismiss,
+                            colors =
+                                IconButtonDefaults.iconButtonColors(
+                                    contentColor = MaterialTheme.colorScheme.inverseOnSurface,
+                                ),
+                        ) {
                             Icon(
                                 imageVector = Icons.Outlined.Close,
                                 contentDescription = null,

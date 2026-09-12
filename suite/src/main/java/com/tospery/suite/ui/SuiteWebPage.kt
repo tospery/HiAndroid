@@ -167,6 +167,7 @@ fun SuiteWebPage(
 
     Scaffold(
         modifier = modifier,
+        containerColor = MaterialTheme.colorScheme.surfaceContainer,
         contentWindowInsets = WindowInsets(0, 0, 0, 0),
         snackbarHost = { SuiteSnackbarHost(hostState = snackbarHostState) },
         topBar = {
