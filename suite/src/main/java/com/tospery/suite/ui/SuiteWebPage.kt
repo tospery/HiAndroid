@@ -28,6 +28,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.ArrowBack
 import androidx.compose.material.icons.outlined.Close
 import androidx.compose.material.icons.outlined.OpenInBrowser
+import androidx.compose.material.icons.automirrored.outlined.OpenInNew
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
@@ -72,6 +73,9 @@ fun SuiteWebPage(
     modifier: Modifier = Modifier,
     title: String? = null,
     onOpenExternal: ((String) -> Unit)? = null,
+    externalOpenIcon: (String) -> SuiteWebExternalOpenIcon = {
+        SuiteWebExternalOpenIcon.BROWSER
+    },
     onNavigationRequest: ((String) -> SuiteWebNavigationDecision)? = null,
     onLoadFailure: (SuiteWebLoadFailure) -> Unit = {},
 ) {
@@ -80,6 +84,7 @@ fun SuiteWebPage(
     val preferredTitle = title?.trim()?.takeIf(String::isNotEmpty)
     val currentOnBack by rememberUpdatedState(onBack)
     val currentOnOpenExternal by rememberUpdatedState(onOpenExternal)
+    val currentExternalOpenIcon by rememberUpdatedState(externalOpenIcon)
     val currentOnNavigationRequest by rememberUpdatedState(onNavigationRequest)
     val currentOnLoadFailure by rememberUpdatedState(onLoadFailure)
     var documentTitle by rememberSaveable(url) { mutableStateOf("") }
@@ -202,11 +207,17 @@ fun SuiteWebPage(
                     },
                     actions = {
                         if (isValidUrl && currentOnOpenExternal != null) {
+                            val externalOpenIcon = currentExternalOpenIcon(activeUrl)
                             IconButton(
                                 onClick = { currentOnOpenExternal?.invoke(activeUrl) },
                             ) {
                                 Icon(
-                                    imageVector = Icons.Outlined.OpenInBrowser,
+                                    imageVector =
+                                        if (externalOpenIcon == SuiteWebExternalOpenIcon.EXTERNAL_APP) {
+                                            Icons.AutoMirrored.Outlined.OpenInNew
+                                        } else {
+                                            Icons.Outlined.OpenInBrowser
+                                        },
                                     contentDescription =
                                         stringResource(R.string.suite_web_open_external),
                                 )
@@ -524,6 +535,12 @@ fun SuiteWebPage(
             }
         }
     }
+}
+
+/** 宿主根据当前网页和本机已安装应用决定外开图标，默认仍是浏览器。 */
+enum class SuiteWebExternalOpenIcon {
+    BROWSER,
+    EXTERNAL_APP,
 }
 
 @Composable
