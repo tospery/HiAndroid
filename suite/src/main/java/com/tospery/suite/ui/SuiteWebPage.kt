@@ -14,6 +14,7 @@ import android.webkit.WebSettings
 import android.webkit.WebView
 import android.webkit.WebViewClient
 import androidx.activity.compose.BackHandler
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -22,6 +23,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.background
 import androidx.compose.material.icons.Icons
@@ -51,11 +53,14 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import com.tospery.suite.R
+import coil3.compose.SubcomposeAsyncImage
 import kotlinx.coroutines.launch
 import java.net.URI
 
@@ -211,16 +216,48 @@ fun SuiteWebPage(
                             IconButton(
                                 onClick = { currentOnOpenExternal?.invoke(activeUrl) },
                             ) {
-                                Icon(
-                                    imageVector =
-                                        if (externalOpenIcon == SuiteWebExternalOpenIcon.EXTERNAL_APP) {
-                                            Icons.AutoMirrored.Outlined.OpenInNew
-                                        } else {
-                                            Icons.Outlined.OpenInBrowser
-                                        },
-                                    contentDescription =
-                                        stringResource(R.string.suite_web_open_external),
-                                )
+                                when (externalOpenIcon) {
+                                    SuiteWebExternalOpenIcon.BROWSER ->
+                                        Icon(
+                                            imageVector = Icons.Outlined.OpenInBrowser,
+                                            contentDescription =
+                                                stringResource(R.string.suite_web_open_external),
+                                        )
+
+                                    SuiteWebExternalOpenIcon.EXTERNAL_APP ->
+                                        Icon(
+                                            imageVector = Icons.AutoMirrored.Outlined.OpenInNew,
+                                            contentDescription =
+                                                stringResource(R.string.suite_web_open_external),
+                                        )
+
+                                    is SuiteWebExternalOpenIcon.PlatformLogo ->
+                                        SubcomposeAsyncImage(
+                                            model = externalOpenIcon.imageUrl,
+                                            contentDescription = externalOpenIcon.contentDescription,
+                                            contentScale = ContentScale.Crop,
+                                            modifier =
+                                                Modifier
+                                                    .size(24.dp)
+                                                    .clip(RoundedCornerShape(6.dp)),
+                                            loading = {
+                                                Icon(
+                                                    imageVector =
+                                                        Icons.AutoMirrored.Outlined.OpenInNew,
+                                                    contentDescription =
+                                                        externalOpenIcon.contentDescription,
+                                                )
+                                            },
+                                            error = {
+                                                Icon(
+                                                    imageVector =
+                                                        Icons.AutoMirrored.Outlined.OpenInNew,
+                                                    contentDescription =
+                                                        externalOpenIcon.contentDescription,
+                                                )
+                                            },
+                                        )
+                                }
                             }
                         }
                     },
@@ -537,10 +574,16 @@ fun SuiteWebPage(
     }
 }
 
-/** 宿主根据当前网页和本机已安装应用决定外开图标，默认仍是浏览器。 */
-enum class SuiteWebExternalOpenIcon {
-    BROWSER,
-    EXTERNAL_APP,
+/** 宿主根据当前网页和本机已安装应用决定外开图标，默认仍是浏览器图标。 */
+sealed interface SuiteWebExternalOpenIcon {
+    data object BROWSER : SuiteWebExternalOpenIcon
+
+    data object EXTERNAL_APP : SuiteWebExternalOpenIcon
+
+    data class PlatformLogo(
+        val imageUrl: String,
+        val contentDescription: String,
+    ) : SuiteWebExternalOpenIcon
 }
 
 @Composable
