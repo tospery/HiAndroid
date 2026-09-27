@@ -21,6 +21,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.size
@@ -197,6 +198,8 @@ fun SuiteWebPage(
                                     imageVector = Icons.AutoMirrored.Outlined.ArrowBack,
                                     contentDescription =
                                         stringResource(R.string.suite_web_back),
+                                    // 缩小图标视觉间距，仍保留 Material 的 48dp 独立触控区域。
+                                    modifier = Modifier.offset(x = WEB_NAVIGATION_ICON_VISUAL_INSET),
                                 )
                             }
                             if (navigationPresentation.showCloseControl) {
@@ -205,6 +208,9 @@ fun SuiteWebPage(
                                         imageVector = Icons.Outlined.Close,
                                         contentDescription =
                                             stringResource(R.string.suite_web_close),
+                                        // 与返回图标对称靠近，避免改变两个动作各自的点击范围。
+                                        modifier =
+                                            Modifier.offset(x = -WEB_NAVIGATION_ICON_VISUAL_INSET),
                                     )
                                 }
                             }
@@ -727,3 +733,5 @@ private val IMAGE_FILE_NAME_REGEX =
         pattern = """.+\.(?:avif|bmp|gif|jpe?g|png|svg|webp)""",
         option = RegexOption.IGNORE_CASE,
     )
+
+private val WEB_NAVIGATION_ICON_VISUAL_INSET = 4.dp
