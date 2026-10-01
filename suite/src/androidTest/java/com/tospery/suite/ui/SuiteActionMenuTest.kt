@@ -95,7 +95,7 @@ class SuiteActionMenuTest {
         val layout = layouts.single()
         val textWidth = layout.getLineRight(0) - layout.getLineLeft(0)
         val menuWidth = composeRule.onNodeWithTag("menu").fetchSemanticsNode().boundsInRoot.width
-        val padding = with(composeRule.density) { 40.dp.toPx() }
+        val padding = with(composeRule.density) { 60.dp.toPx() }
         // 文字测量和两侧内边距各自取整，允许一个 dp 内的像素舍入差异。
         val roundingTolerance = with(composeRule.density) { 1.dp.toPx() }
         assertTrue(

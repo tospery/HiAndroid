@@ -130,7 +130,7 @@ fun SuiteActionMenuItem(
                 dismiss()
                 onClick()
             }
-            .padding(horizontal = 20.dp, vertical = 14.dp),
+            .padding(horizontal = 30.dp, vertical = 14.dp),
         color = SuiteActionMenuDefaults.contentColor.copy(alpha = if (enabled) 1f else 0.38f),
         style = MaterialTheme.typography.bodyLarge,
     )

@@ -89,9 +89,10 @@ the parent bounds determine the anchor. The component uses a shared charcoal
 background, white text, 16dp corners and at least 48dp touch targets in both
 light and dark themes. It constrains the popup to the screen, points its arrow
 at the trigger center, and moves above the trigger when there is more room.
-Width follows the longest label plus horizontal padding, bounded only by the
-available window width. Long content scrolls. Callers own labels, ordering and
-callbacks; selecting an enabled item dismisses the menu before invoking its callback.
+Width follows the longest label plus 30dp padding on each side (60dp total),
+bounded only by the available window width. Long content scrolls. Callers own
+labels, ordering and callbacks; selecting an enabled item dismisses the menu before
+invoking its callback.
 
 ### Composite Build
 
