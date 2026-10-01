@@ -16,12 +16,16 @@ import androidx.compose.ui.layout.positionOnScreen
 import androidx.compose.ui.graphics.toPixelMap
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.test.captureToImage
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performSemanticsAction
+import androidx.compose.ui.text.TextLayoutResult
 import androidx.compose.ui.unit.dp
+import kotlin.math.abs
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Rule
@@ -63,6 +67,43 @@ class SuiteActionMenuTest {
 
     @Test
     fun darkMenuFlipsItsPointerAtTheBottomEdge() = assertMenuPointer(Alignment.BottomEnd, dark = true)
+
+    @Test
+    fun menuWidthTracksTheLongestOption() {
+        val labels = mutableStateOf(listOf("复制链接", "外部浏览"))
+        composeRule.setContent {
+            MaterialTheme {
+                Box(Modifier.fillMaxSize(), contentAlignment = Alignment.TopEnd) {
+                    Box(Modifier.size(48.dp)) {
+                        SuiteActionMenu(true, {}, Modifier.testTag("menu")) {
+                            labels.value.forEach { label -> SuiteActionMenuItem(label, {}) }
+                        }
+                    }
+                }
+            }
+        }
+        val shortWidth = assertWidthFitsText("复制链接")
+        composeRule.runOnIdle { labels.value = listOf("复制链接", "Open externally") }
+        val longerWidth = assertWidthFitsText("Open externally")
+        assertTrue(longerWidth > shortWidth)
+    }
+
+    private fun assertWidthFitsText(longestLabel: String): Float {
+        val layouts = mutableListOf<TextLayoutResult>()
+        composeRule.onNodeWithText(longestLabel)
+            .performSemanticsAction(SemanticsActions.GetTextLayoutResult) { it(layouts) }
+        val layout = layouts.single()
+        val textWidth = layout.getLineRight(0) - layout.getLineLeft(0)
+        val menuWidth = composeRule.onNodeWithTag("menu").fetchSemanticsNode().boundsInRoot.width
+        val padding = with(composeRule.density) { 40.dp.toPx() }
+        // 文字测量和两侧内边距各自取整，允许一个 dp 内的像素舍入差异。
+        val roundingTolerance = with(composeRule.density) { 1.dp.toPx() }
+        assertTrue(
+            "Menu width $menuWidth should fit text $textWidth plus $padding padding",
+            abs(menuWidth - textWidth - padding) <= roundingTolerance,
+        )
+        return menuWidth
+    }
 
     private fun assertMenuPointer(alignment: Alignment, dark: Boolean) {
         composeRule.setContent {

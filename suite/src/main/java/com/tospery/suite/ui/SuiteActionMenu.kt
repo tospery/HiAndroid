@@ -47,13 +47,14 @@ import androidx.compose.ui.window.PopupProperties
 object SuiteActionMenuDefaults {
     val containerColor = Color(0xFF333333)
     val contentColor = Color.White
-    val cornerRadius = 24.dp
+    val cornerRadius = 16.dp
 }
 
 /**
  * 锚定在父布局（通常是包住 IconButton 的 Box）上的纯文字气泡菜单。
  *
- * 内容顺序、文案与事件由调用方提供；组件处理屏幕边界、箭头定位、滚动与关闭。
+ * 宽度按最长选项文字及内边距计算，只受窗口边界限制；内容顺序、文案与事件由调用方提供。
+ * 组件处理屏幕边界、箭头定位、滚动与关闭。
  * [SuiteActionMenuItem] 会先关闭菜单再执行事件，禁用项不会触发关闭或回调。
  */
 @Composable
@@ -75,7 +76,7 @@ fun SuiteActionMenu(
         )
     }
     val maxWidth = with(density) { windowSize.width.toDp() - MenuScreenMargin * 2 }
-        .coerceIn(1.dp, MenuMaxWidth)
+        .coerceAtLeast(1.dp)
     val maxHeight = with(density) {
         minOf(windowSize.height - MenuScreenMargin.roundToPx() * 2, pointer.availableHeight).toDp()
     }
@@ -87,7 +88,7 @@ fun SuiteActionMenu(
     ) {
         Surface(
             modifier = modifier
-                .widthIn(min = MenuMinWidth.coerceAtMost(maxWidth), max = maxWidth)
+                .widthIn(max = maxWidth)
                 .width(IntrinsicSize.Max)
                 .heightIn(max = maxHeight),
             shape = ActionMenuShape(pointer),
@@ -203,8 +204,6 @@ private class ActionMenuShape(private val pointer: MenuPointer) : Shape {
 }
 
 private val LocalMenuDismiss = staticCompositionLocalOf<() -> Unit> { {} }
-private val MenuMinWidth = 168.dp
-private val MenuMaxWidth = 280.dp
 private val MenuScreenMargin = 12.dp
 private val MenuAnchorGap = 2.dp
 private val MenuContentPadding = 6.dp

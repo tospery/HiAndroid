@@ -86,11 +86,12 @@ code needs to use its Retrofit or OkHttp integration APIs directly.
 `:suite` provides `SuiteActionMenu` and `SuiteActionMenuItem` for anchored,
 text-only action menus. Place the menu beside its trigger inside the same `Box`;
 the parent bounds determine the anchor. The component uses a shared charcoal
-background, white text, 24dp corners and at least 48dp touch targets in both
+background, white text, 16dp corners and at least 48dp touch targets in both
 light and dark themes. It constrains the popup to the screen, points its arrow
 at the trigger center, and moves above the trigger when there is more room.
-Long content scrolls. Callers own labels, ordering and callbacks; selecting an
-enabled item dismisses the menu before invoking its callback.
+Width follows the longest label plus horizontal padding, bounded only by the
+available window width. Long content scrolls. Callers own labels, ordering and
+callbacks; selecting an enabled item dismisses the menu before invoking its callback.
 
 ### Composite Build
 
