@@ -17,6 +17,8 @@ value class ShareChannel(
         val ShortMessage = ShareChannel("short_message")
         val Email = ShareChannel("email")
         val X = ShareChannel("x")
+        val WeChat = ShareChannel("wechat")
+        val WeChatMoments = ShareChannel("wechat_moments")
     }
 }
 
@@ -25,6 +27,7 @@ data class ShareContent(
     val title: String,
     val text: String,
     val url: String? = null,
+    val image: ShareImage? = null,
 ) {
     init {
         require(title.isNotBlank()) { "Share title must not be blank." }
@@ -34,6 +37,21 @@ data class ShareContent(
 
     val textWithUrl: String
         get() = url?.let { "$text\n$it" } ?: text
+}
+
+/** Portable image sources. Android resources are resolved by the host before dispatch. */
+sealed interface ShareImage {
+    data class RemoteUrl(val url: String) : ShareImage {
+        init {
+            require(url.startsWith("https://")) { "Share images require HTTPS." }
+        }
+    }
+
+    data class LocalFile(val path: String) : ShareImage {
+        init {
+            require(path.isNotBlank()) { "Share image path must not be blank." }
+        }
+    }
 }
 
 data class ShareRequest(

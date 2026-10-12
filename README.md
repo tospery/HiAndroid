@@ -153,3 +153,17 @@ The project follows semantic versioning:
 
 HiAndroid is licensed under the
 [Apache License 2.0](LICENSE).
+
+## Optional U-Share WeChat platform
+
+`:suite-share-umeng-wechat` is consumed through the parent composite build as
+`com.tospery:suite-share-umeng-wechat`; it is not currently published to Maven Central.
+It adds U-Share 7.3.7's WeChat handler and WeChat OpenSDK 6.8.24 without forcing
+those dependencies on SMS/email-only hosts. The host provides its public AppID,
+a narrow FileProvider authority and a callback activity at
+`<applicationId>.wxapi.WXEntryActivity` extending `UmengWeChatCallbackActivity`.
+The callback readiness check must reflect the host's consent-aware runtime.
+Sharing uses an empty AppSecret; authorization and secret exchange belong on a server.
+
+`ShareContent.image` accepts portable HTTPS or local-file sources. Image selection,
+resource loading and app-specific thumbnail policy stay in the host application.

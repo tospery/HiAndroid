@@ -10,6 +10,24 @@ import org.junit.Test
 
 class UmengShareProviderTest {
     @Test
+    fun weChatRequiresReadySdkAndClientWhileSmsKeepsSystemFallback() {
+        val channels = linkedSetOf(ShareChannel.WeChat, ShareChannel.WeChatMoments, ShareChannel.ShortMessage)
+        for (sdkReady in listOf(false, true)) {
+            for (clientAvailable in listOf(false, true)) {
+                assertEquals(
+                    if (sdkReady && clientAvailable) channels else setOf(ShareChannel.ShortMessage),
+                    resolveSupportedChannels(
+                        enabledChannels = channels,
+                        isSystemHandlerAvailable = { true },
+                        isUmengSdkReady = sdkReady,
+                        isWeChatAvailable = clientAvailable,
+                    ),
+                )
+            }
+        }
+    }
+
+    @Test
     fun supportedRequestIsForwardedToSdk() {
         val sdk = RecordingSdk()
         val provider = UmengShareProvider(sdk)

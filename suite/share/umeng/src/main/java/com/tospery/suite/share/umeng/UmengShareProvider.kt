@@ -7,13 +7,18 @@ import android.net.Uri
 import com.tospery.base.sdk.SdkInitializationState
 import com.tospery.base.share.ShareChannel
 import com.tospery.base.share.ShareContent
+import com.tospery.base.share.ShareImage
 import com.tospery.base.share.ShareProvider
 import com.tospery.base.share.ShareRequest
 import com.tospery.base.share.ShareResult
 import com.umeng.socialize.ShareAction
+import com.umeng.socialize.PlatformConfig
 import com.umeng.socialize.UMShareAPI
 import com.umeng.socialize.UMShareListener
 import com.umeng.socialize.bean.SHARE_MEDIA
+import com.umeng.socialize.media.UMImage
+import com.umeng.socialize.media.UMWeb
+import java.io.File
 
 private val defaultSupportedChannels =
     setOf(ShareChannel.ShortMessage, ShareChannel.Email)
@@ -50,9 +55,20 @@ class UmengShareProvider internal constructor(
             activity: Activity,
             sdkState: SdkInitializationState,
             enabledChannels: Set<ShareChannel> = defaultSupportedChannels,
+            weChatAppId: String = "",
+            fileProviderAuthority: String = "${activity.packageName}.fileprovider",
             onExecutionPathSelected: (ShareChannel, UmengShareExecutionPath) -> Unit = { _, _ -> },
         ): UmengShareProvider {
             val fallbackSdk = AndroidSystemShareSdk(activity)
+            val weChatReady = sdkState.isInitialized() && weChatAppId.isNotBlank()
+            if (weChatReady) {
+                // 分享只需要公开 AppID；AppSecret 永远不由客户端配置或获取。
+                PlatformConfig.setWeixin(weChatAppId, "")
+                PlatformConfig.setWXFileProvider(fileProviderAuthority)
+            }
+            val weChatAvailable =
+                isUmengPlatformModuleAvailable(ShareChannel.WeChat) &&
+                    runCatching { activity.packageManager.getPackageInfo("com.tencent.mm", 0) }.isSuccess
             return UmengShareProvider(
                 sdk =
                     PlatformAwareUmengShareSdk(
@@ -66,6 +82,8 @@ class UmengShareProvider internal constructor(
                     resolveSupportedChannels(
                         enabledChannels = enabledChannels,
                         isSystemHandlerAvailable = fallbackSdk::isAvailable,
+                        isUmengSdkReady = weChatReady,
+                        isWeChatAvailable = weChatAvailable,
                     ),
             )
         }
@@ -116,6 +134,10 @@ internal class PlatformAwareUmengShareSdk(
     ) {
         val usesUmengPlatform =
             isUmengSdkInitialized() && isPlatformModuleAvailable(channel)
+        if (channel.isWeChat() && !usesUmengPlatform) {
+            onResult(ShareResult.Failed(UnsupportedOperationException("WeChat SDK is unavailable.")))
+            return
+        }
         val executionPath =
             if (usesUmengPlatform) {
                 UmengShareExecutionPath.UMENG_PLATFORM_HANDLER
@@ -137,11 +159,31 @@ private class AndroidUmengShareSdk(
         onResult: (ShareResult) -> Unit,
     ) {
         val platform = channel.toUmengPlatform()
-        ShareAction(activity)
+        val action = ShareAction(activity)
             .setPlatform(platform)
             .withSubject(content.title)
             .withText(content.textWithUrl)
-            .setCallback(
+        if (channel.isWeChat()) {
+            val url = content.url
+            if (url.isNullOrBlank()) {
+                onResult(ShareResult.Failed(IllegalArgumentException("WeChat cards require a URL.")))
+                return
+            }
+            val web = UMWeb(url).apply {
+                title = content.title
+                description = content.text
+                content.image?.let { image ->
+                    setThumb(
+                        when (image) {
+                            is ShareImage.LocalFile -> UMImage(activity, File(image.path))
+                            is ShareImage.RemoteUrl -> UMImage(activity, image.url)
+                        },
+                    )
+                }
+            }
+            action.withMedia(web)
+        }
+        action.setCallback(
                 object : UMShareListener {
                     override fun onStart(platform: SHARE_MEDIA) {
                         onResult(ShareResult.Started)
@@ -169,6 +211,8 @@ private class AndroidUmengShareSdk(
         when (this) {
             ShareChannel.ShortMessage -> SHARE_MEDIA.SMS
             ShareChannel.Email -> SHARE_MEDIA.EMAIL
+            ShareChannel.WeChat -> SHARE_MEDIA.WEIXIN
+            ShareChannel.WeChatMoments -> SHARE_MEDIA.WEIXIN_CIRCLE
             else -> throw UnsupportedOperationException(value)
         }
 }
@@ -242,15 +286,23 @@ private class AndroidSystemShareSdk(
 internal fun resolveSupportedChannels(
     enabledChannels: Set<ShareChannel>,
     isSystemHandlerAvailable: (ShareChannel) -> Boolean,
+    isUmengSdkReady: Boolean = false,
+    isWeChatAvailable: Boolean = false,
 ): Set<ShareChannel> =
-    enabledChannels.filterTo(linkedSetOf(), isSystemHandlerAvailable)
+    enabledChannels.filterTo(linkedSetOf()) { channel ->
+        if (channel.isWeChat()) isUmengSdkReady && isWeChatAvailable else isSystemHandlerAvailable(channel)
+    }
+
+private fun ShareChannel.isWeChat(): Boolean =
+    this == ShareChannel.WeChat || this == ShareChannel.WeChatMoments
 
 private fun isUmengPlatformModuleAvailable(channel: ShareChannel): Boolean {
     val handlerClassName =
         when (channel) {
             ShareChannel.ShortMessage -> "com.umeng.socialize.handler.SmsHandler"
             ShareChannel.Email -> "com.umeng.socialize.handler.EmailHandler"
+            ShareChannel.WeChat, ShareChannel.WeChatMoments -> "com.umeng.socialize.handler.UMWXHandler"
             else -> return false
         }
-    return runCatching { Class.forName(handlerClassName) }.isSuccess
+    return runCatching { Class.forName(handlerClassName, false, UmengShareProvider::class.java.classLoader) }.isSuccess
 }
