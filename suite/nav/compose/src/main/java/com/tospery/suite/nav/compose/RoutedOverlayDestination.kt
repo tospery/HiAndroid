@@ -46,11 +46,14 @@ import com.tospery.nav.navOverlayRoutePattern
  * 为 Navigation Compose 注册统一的页面级 Dialog/Sheet URL destination。
  *
  * 预置弹层由调用方按 id 渲染业务 UI；自动生成弹层由本模块渲染，并把受限动作对象回传。
+ * 关闭开关默认保持既有行为；需要显式关闭入口的 Sheet 可禁用系统返回与遮罩点击。
  */
 fun NavGraphBuilder.routedOverlayDestination(
     navController: NavHostController,
     presentation: NavPresentation,
     onGeneratedAction: (NavOverlayRoute.Generated, NavOverlayAction) -> Unit = { _, _ -> },
+    dismissOnBackPress: Boolean = true,
+    dismissOnClickOutside: Boolean = true,
     predefinedContent: @Composable (NavOverlayRoute.Predefined, () -> Unit) -> Unit,
 ) {
     require(presentation != NavPresentation.SCREEN) {
@@ -62,7 +65,11 @@ fun NavGraphBuilder.routedOverlayDestination(
         arguments = overlayNavigationArguments(),
         dialogProperties =
             DialogProperties(
+                dismissOnBackPress = dismissOnBackPress,
+                dismissOnClickOutside = dismissOnClickOutside,
                 usePlatformDefaultWidth = false,
+                // Sheet 的 Surface 延伸到系统导航条下方，由内容自行补足安全间距。
+                decorFitsSystemWindows = presentation != NavPresentation.SHEET,
             ),
     ) { entry ->
         val dismiss: () -> Unit = remember(navController) {
@@ -96,6 +103,7 @@ fun NavGraphBuilder.routedOverlayDestination(
         RoutedOverlayFrame(
             presentation = presentation,
             onDismiss = dismiss,
+            dismissOnClickOutside = dismissOnClickOutside,
         ) {
             when (overlay) {
                 is NavOverlayRoute.Predefined -> {
@@ -136,6 +144,7 @@ private val NavOverlayRouteArguments.allNames: List<String>
 private fun RoutedOverlayFrame(
     presentation: NavPresentation,
     onDismiss: () -> Unit,
+    dismissOnClickOutside: Boolean,
     content: @Composable () -> Unit,
 ) {
     val interactionSource = remember { MutableInteractionSource() }
@@ -159,7 +168,7 @@ private fun RoutedOverlayFrame(
                 .clickable(
                     interactionSource = interactionSource,
                     indication = null,
-                    onClick = onDismiss,
+                    onClick = { if (dismissOnClickOutside) onDismiss() },
                 ).padding(contentPadding),
         contentAlignment = contentAlignment,
     ) {
