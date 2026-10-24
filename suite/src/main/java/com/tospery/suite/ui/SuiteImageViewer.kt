@@ -59,6 +59,7 @@ fun SuiteImageViewer(
     selectedIndex: Int,
     onSelectedIndexChanged: (Int) -> Unit,
     modifier: Modifier = Modifier,
+    onImageLoadFailed: (SuiteImageViewerItem) -> Unit = {},
 ) {
     require(items.isNotEmpty()) { "SuiteImageViewer 至少需要一张图片。" }
     require(selectedIndex in items.indices) { "SuiteImageViewer selectedIndex 越界。" }
@@ -96,6 +97,7 @@ fun SuiteImageViewer(
         ZoomableSuiteImage(
             item = item,
             onScaleChanged = { scale -> pageScales[item.key] = scale },
+            onImageLoadFailed = onImageLoadFailed,
             modifier = Modifier.fillMaxSize(),
         )
     }
@@ -105,6 +107,7 @@ fun SuiteImageViewer(
 private fun ZoomableSuiteImage(
     item: SuiteImageViewerItem,
     onScaleChanged: (Float) -> Unit,
+    onImageLoadFailed: (SuiteImageViewerItem) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     var scale by remember(item.key) { mutableFloatStateOf(MIN_IMAGE_SCALE) }
@@ -167,6 +170,7 @@ private fun ZoomableSuiteImage(
     ) {
         SuiteNetworkImage(
             item = item,
+            onImageLoadFailed = onImageLoadFailed,
             modifier =
                 Modifier
                     .fillMaxSize()
@@ -183,11 +187,13 @@ private fun ZoomableSuiteImage(
 @Composable
 private fun SuiteNetworkImage(
     item: SuiteImageViewerItem,
+    onImageLoadFailed: (SuiteImageViewerItem) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     var retryKey by remember(item.key) { mutableIntStateOf(0) }
     var isLoading by remember(item.key, retryKey) { mutableStateOf(true) }
     var hasError by remember(item.key, retryKey) { mutableStateOf(false) }
+    val currentOnImageLoadFailed by rememberUpdatedState(onImageLoadFailed)
 
     Box(
         modifier = modifier,
@@ -209,6 +215,7 @@ private fun SuiteNetworkImage(
                 onError = {
                     isLoading = false
                     hasError = true
+                    currentOnImageLoadFailed(item)
                 },
                 modifier = Modifier.fillMaxSize(),
             )
