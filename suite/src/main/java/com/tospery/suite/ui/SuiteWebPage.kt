@@ -502,7 +502,7 @@ fun SuiteWebPage(
                                                                     R.string.suite_web_load_failed,
                                                                 ),
                                                                 actionLabel = context.getString(
-                                                                    R.string.suite_web_retry,
+                                                                    R.string.suite_action_retry,
                                                                 ),
                                                         ) == SnackbarResult.ActionPerformed
                                                         ) {
@@ -610,7 +610,7 @@ private fun SuiteWebLoadErrorContent(
             style = MaterialTheme.typography.bodyLarge,
         )
         TextButton(onClick = onRetry) {
-            Text(text = stringResource(R.string.suite_web_retry))
+            Text(text = stringResource(R.string.suite_action_retry))
         }
     }
 }

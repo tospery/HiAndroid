@@ -220,7 +220,7 @@ private fun SuiteNetworkImage(
                     title = stringResource(R.string.suite_image_viewer_image_error_title),
                     description =
                         stringResource(R.string.suite_image_viewer_image_error_description),
-                    actionText = stringResource(R.string.suite_image_viewer_retry),
+                    actionText = stringResource(R.string.suite_action_retry),
                     onActionClick = { retryKey += 1 },
                     modifier = Modifier.fillMaxSize(),
                 )

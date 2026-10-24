@@ -22,6 +22,16 @@ application-specific business logic.
 | `:github:model:core` | `com.tospery:github-model-core:0.0.2` | JAR | Stable models shared by GitHub integrations. |
 | `:github:trending` | `com.tospery:github-trending:0.0.2` | JAR | GitHub Trending URL building, fetching and HTML parsing. |
 
+### Shared Android UI strings
+
+`:suite` publishes `suite_action_retry` (`Retry` / `重试`) and
+`suite_navigate_back_content_description` (`Navigate back` / `返回`) through
+`com.tospery.suite.R.string`. They are listed in
+`suite/src/main/res/values/public.xml`; other component strings stay internal.
+The web page's Back action retains its own description because it can navigate
+within browser history. Keep default and Chinese values together when changing
+these resources.
+
 ## Build requirements
 
 - JDK 21 for running the configured Gradle daemon.

@@ -183,7 +183,7 @@ fun SuiteMediaPlayerPage(
                         Icon(
                             imageVector = Icons.AutoMirrored.Outlined.ArrowBack,
                             contentDescription =
-                                stringResource(R.string.suite_media_player_back),
+                                stringResource(R.string.suite_navigate_back_content_description),
                         )
                     }
                 },
@@ -236,7 +236,7 @@ fun SuiteMediaPlayerPage(
                     title = stringResource(R.string.suite_media_player_error_title),
                     description =
                         stringResource(R.string.suite_media_player_error_description),
-                    actionText = stringResource(R.string.suite_media_player_retry),
+                    actionText = stringResource(R.string.suite_action_retry),
                     onActionClick = {
                         hasPlaybackError = false
                         retryVersion += 1

@@ -1,0 +1,4 @@
+<resources>
+    <public name="suite_action_retry" type="string" />
+    <public name="suite_navigate_back_content_description" type="string" />
+</resources>
