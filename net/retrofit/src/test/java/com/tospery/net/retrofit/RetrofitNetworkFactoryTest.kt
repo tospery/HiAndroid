@@ -220,7 +220,13 @@ class RetrofitNetworkFactoryTest {
 
             client.newCall(
                 Request.Builder()
-                    .url(server.url("/login/path-secret?token=query-secret"))
+                    .url(
+                        server.url("/login/path-secret?token=query-secret")
+                            .newBuilder()
+                            .username("user-secret")
+                            .password("password-secret")
+                            .build(),
+                    )
                     .header("Authorization", "Bearer header-secret")
                     .header("X-Custom", "arbitrary-header-secret")
                     .post("free-body-secret".toRequestBody("text/plain".toMediaType()))
@@ -230,6 +236,8 @@ class RetrofitNetworkFactoryTest {
             val logged = logger.entries.joinToString("\n") { it.message }
             assertTrue(logged.contains("query-secret").not())
             assertTrue(logged.contains("path-secret").not())
+            assertTrue(logged.contains("user-secret").not())
+            assertTrue(logged.contains("password-secret").not())
             assertTrue(logged.contains("header-secret").not())
             assertTrue(logged.contains("arbitrary-header-secret").not())
             assertTrue(logged.contains("free-body-secret").not())

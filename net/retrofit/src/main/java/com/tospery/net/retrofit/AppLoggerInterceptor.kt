@@ -201,7 +201,14 @@ internal class AppLoggerInterceptor(
 
     private fun HttpUrl.toLogUrl(redact: Boolean): String =
         if (redact) {
-            newBuilder().encodedPath("/").query(null).fragment(null).build().toString()
+            newBuilder()
+                .username("")
+                .password("")
+                .encodedPath("/")
+                .query(null)
+                .fragment(null)
+                .build()
+                .toString()
         } else {
             toString()
         }
