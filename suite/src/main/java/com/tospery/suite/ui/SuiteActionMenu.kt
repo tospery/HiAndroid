@@ -1,17 +1,20 @@
 package com.tospery.suite.ui
 
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -21,6 +24,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.staticCompositionLocalOf
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.RoundRect
@@ -51,7 +55,7 @@ object SuiteActionMenuDefaults {
 }
 
 /**
- * 锚定在父布局（通常是包住 IconButton 的 Box）上的纯文字气泡菜单。
+ * 锚定在父布局（通常是包住 IconButton 的 Box）上的气泡菜单。
  *
  * 宽度按最长选项文字及内边距计算，只受窗口边界限制；内容顺序、文案与事件由调用方提供。
  * 组件处理屏幕边界、箭头定位、滚动与关闭。
@@ -112,28 +116,50 @@ fun SuiteActionMenu(
     }
 }
 
-/** 菜单项不包含图标；保留至少 48dp 触控高度，长文案随字号换行。 */
+/** 菜单项可在文案右侧显示图标；保留至少 48dp 触控高度，长文案随字号换行。 */
 @Composable
 fun SuiteActionMenuItem(
     label: String,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
     enabled: Boolean = true,
+    trailingIcon: (@Composable () -> Unit)? = null,
 ) {
     val dismiss = LocalMenuDismiss.current
-    Text(
-        text = label,
-        modifier = modifier
-            .fillMaxWidth()
-            .heightIn(min = 48.dp)
-            .clickable(enabled = enabled, role = Role.Button) {
-                dismiss()
-                onClick()
+    val itemModifier = modifier
+        .fillMaxWidth()
+        .heightIn(min = 48.dp)
+        .clickable(enabled = enabled, role = Role.Button) {
+            dismiss()
+            onClick()
+        }
+        .padding(horizontal = 30.dp, vertical = 14.dp)
+    val contentColor = SuiteActionMenuDefaults.contentColor.copy(alpha = if (enabled) 1f else 0.38f)
+    if (trailingIcon == null) {
+        Text(
+            text = label,
+            modifier = itemModifier,
+            color = contentColor,
+            style = MaterialTheme.typography.bodyLarge,
+        )
+    } else {
+        Box(modifier = itemModifier) {
+            Text(
+                text = label,
+                modifier = Modifier.padding(end = 40.dp),
+                color = contentColor,
+                style = MaterialTheme.typography.bodyLarge,
+            )
+            CompositionLocalProvider(LocalContentColor provides contentColor) {
+                Box(
+                    modifier = Modifier.align(Alignment.CenterEnd).size(24.dp),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    trailingIcon()
+                }
             }
-            .padding(horizontal = 30.dp, vertical = 14.dp),
-        color = SuiteActionMenuDefaults.contentColor.copy(alpha = if (enabled) 1f else 0.38f),
-        style = MaterialTheme.typography.bodyLarge,
-    )
+        }
+    }
 }
 
 private data class MenuPointer(
