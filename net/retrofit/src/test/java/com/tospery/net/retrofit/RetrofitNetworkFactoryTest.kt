@@ -23,6 +23,7 @@ import retrofit2.http.Body
 import retrofit2.http.POST
 import org.junit.After
 import java.io.ByteArrayOutputStream
+import java.io.IOException
 import java.util.Base64
 import okio.BufferedSink
 
@@ -208,7 +209,7 @@ class RetrofitNetworkFactoryTest {
     @Test
     fun defaultDebugLoggingKeepsCredentialsOutOfAnUnprotectedProvider() {
         MockWebServer().use { server ->
-            server.enqueue(MockResponse(code = 200, body = "{\"token\":\"response-secret\"}"))
+            server.enqueue(MockResponse(code = 200, body = "free-response-secret"))
             server.start()
 
             val logger = RecordingLogProvider()
@@ -219,18 +220,44 @@ class RetrofitNetworkFactoryTest {
 
             client.newCall(
                 Request.Builder()
-                    .url(server.url("/login?token=query-secret"))
+                    .url(server.url("/login/path-secret?token=query-secret"))
                     .header("Authorization", "Bearer header-secret")
-                    .post("{\"token\":\"body-secret\"}".toRequestBody("application/json".toMediaType()))
+                    .header("X-Custom", "arbitrary-header-secret")
+                    .post("free-body-secret".toRequestBody("text/plain".toMediaType()))
                     .build(),
             ).execute().close()
 
             val logged = logger.entries.joinToString("\n") { it.message }
             assertTrue(logged.contains("query-secret").not())
+            assertTrue(logged.contains("path-secret").not())
             assertTrue(logged.contains("header-secret").not())
-            assertTrue(logged.contains("body-secret").not())
-            assertTrue(logged.contains("response-secret").not())
+            assertTrue(logged.contains("arbitrary-header-secret").not())
+            assertTrue(logged.contains("free-body-secret").not())
+            assertTrue(logged.contains("free-response-secret").not())
+            assertTrue(logged.contains("<body omitted> bytes="))
         }
+    }
+
+    @Test
+    fun unprotectedProviderDoesNotReceiveRawExceptionText() {
+        val logger = RecordingLogProvider()
+        LogRegistry.install(logger)
+        val client = RetrofitNetworkFactory.createOkHttpClient(
+            config = RetrofitNetworkConfig(baseUrl = "https://example.com/"),
+            redactSensitiveData = false,
+            captureFullBodies = true,
+        ).newBuilder().addInterceptor { throw IOException("exception-secret") }.build()
+
+        runCatching {
+            client.newCall(Request.Builder().url("https://example.com/path-secret").build())
+                .execute().close()
+        }
+
+        val logged = logger.entries.joinToString("\n") { it.message }
+        assertTrue(logged.contains("path-secret").not())
+        assertTrue(logged.contains("exception-secret").not())
+        assertTrue(logger.entries.any { it.level == LogLevel.ERROR })
+        assertTrue(logger.entries.all { it.throwable == null })
     }
 
     @Test
@@ -442,7 +469,7 @@ class RetrofitNetworkFactoryTest {
     }
 
     @Test
-    fun factoryOkHttpClientTruncatesDebugBodiesAt1024Characters() {
+    fun factoryOkHttpClientOmitsUnprotectedBodies() {
         MockWebServer().use { server ->
             server.enqueue(
                 MockResponse(
@@ -473,8 +500,8 @@ class RetrofitNetworkFactoryTest {
             ).execute().close()
 
             val messages = logger.entries.map { it.message }
-            assertEquals("y".repeat(1_024) + "\n...<已截断>", messages[1])
-            assertEquals("x".repeat(1_024) + "\n...<已截断>", messages[3])
+            assertEquals("<body omitted> bytes=1025", messages[1])
+            assertEquals("<body omitted> bytes=1025", messages[3])
         }
     }
 
@@ -508,8 +535,8 @@ class RetrofitNetworkFactoryTest {
 
             assertEquals(
                 listOf(
-                    "[GET]${server.url("/user")}",
-                    "[GET][200]${server.url("/user")}",
+                    "[GET]${server.url("/")}",
+                    "[GET][200]${server.url("/")}",
                 ),
                 logger.entries.map(LogEntry::message),
             )
@@ -541,8 +568,8 @@ class RetrofitNetworkFactoryTest {
 
             assertEquals(
                 listOf(
-                    "[GET]${server.url("/user")}",
-                    "[GET][500]${server.url("/user")}",
+                    "[GET]${server.url("/")}",
+                    "[GET][500]${server.url("/")}",
                 ),
                 logger.entries.map(LogEntry::message),
             )

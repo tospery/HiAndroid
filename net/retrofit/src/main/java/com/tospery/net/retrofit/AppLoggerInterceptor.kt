@@ -22,8 +22,8 @@ internal val NET_LOG_TAG = LogTags.moduleTag(ModuleMetadata.path)
 /**
  * 使用 base 日志抽象记录网络请求生命周期。
  *
- * Ordinary clients keep the bounded, redacted diagnostics. A protected log provider and
- * explicit opt-in are both required before raw headers and streamed bodies are recorded.
+ * Ordinary clients receive only method, origin, status, and body length. A protected log
+ * provider and explicit opt-in are both required before paths, headers, and bodies are recorded.
  */
 internal class AppLoggerInterceptor(
     private val tag: String = NET_LOG_TAG,
@@ -54,14 +54,20 @@ internal class AppLoggerInterceptor(
             safeLog { info(tag = tag, attributes = requestAttributes) { "[${request.method}]$url" } }
         }
         if (shouldLogRequest && debugEnabled) {
-            request.headers.headersForLog(redact = !rawCapture)
-                .takeIf(String::isNotBlank)?.let { headers ->
-                safeLog { debug(tag = tag, attributes = requestAttributes) { headers } }
+            if (rawCapture) {
+                request.headers.headersForLog(redact = false)
+                    .takeIf(String::isNotBlank)?.let { headers ->
+                        safeLog { debug(tag = tag, attributes = requestAttributes) { headers } }
+                    }
             }
             if (logBodies && request.body != null && !fullCapture) {
                 safeLog {
                     debug(tag = tag) {
-                        request.body.requestBodyForLog(request.headers, redact = !rawCapture)
+                        if (rawCapture) {
+                            request.body.requestBodyForLog(request.headers, redact = false)
+                        } else {
+                            omittedBody(runCatching { request.body?.contentLength() ?: -1L }.getOrDefault(-1L))
+                        }
                     }
                 }
             }
@@ -128,7 +134,11 @@ internal class AppLoggerInterceptor(
                 } else if (!fullCapture) {
                     safeLog {
                         debug(tag = tag) {
-                            response.responseBodyForLog(redact = !rawCapture)
+                            if (rawCapture) {
+                                response.responseBodyForLog(redact = false)
+                            } else {
+                                omittedBody(runCatching { response.body.contentLength() }.getOrDefault(-1L))
+                            }
                         }
                     }
                 }
@@ -146,7 +156,7 @@ internal class AppLoggerInterceptor(
                 safeLog {
                     error(
                         tag = tag,
-                        throwable = throwable,
+                        throwable = throwable.takeIf { rawCapture },
                         attributes = requestAttributes,
                     ) {
                         buildString {
@@ -189,17 +199,15 @@ internal class AppLoggerInterceptor(
             .redactSensitiveText(redact)
     }
 
-    private fun HttpUrl.toLogUrl(redact: Boolean): String {
-        return if (redact) {
-            newBuilder()
-                .query(null)
-                .fragment(null)
-                .build()
-                .toString()
+    private fun HttpUrl.toLogUrl(redact: Boolean): String =
+        if (redact) {
+            newBuilder().encodedPath("/").query(null).fragment(null).build().toString()
         } else {
             toString()
         }
-    }
+
+    private fun omittedBody(contentLength: Long): String =
+        "$OMITTED_BODY_VALUE bytes=${contentLength.takeIf { it >= 0L } ?: "unknown"}"
 
     private fun okhttp3.Request.isGitHubGraphQl(): Boolean {
         return url.host == GITHUB_API_HOST && url.encodedPath == GITHUB_GRAPHQL_PATH
@@ -277,6 +285,7 @@ internal class AppLoggerInterceptor(
         const val MAX_BODY_LOG_CHARS = 1_024
         const val EMPTY_LOG_VALUE = "<空>"
         const val UNREADABLE_LOG_VALUE = "<不可读取>"
+        const val OMITTED_BODY_VALUE = "<body omitted>"
         const val REDACTED_VALUE = "***"
         const val GITHUB_API_HOST = "api.github.com"
         const val GITHUB_GRAPHQL_PATH = "/graphql"
