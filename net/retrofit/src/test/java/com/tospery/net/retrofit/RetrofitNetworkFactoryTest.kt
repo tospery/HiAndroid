@@ -11,6 +11,7 @@ import mockwebserver3.MockWebServer
 import okhttp3.Dns
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.Request
+import okhttp3.RequestBody
 import okhttp3.RequestBody.Companion.toRequestBody
 import okhttp3.ResponseBody
 import retrofit2.Call
@@ -21,6 +22,9 @@ import org.junit.Assert.assertTrue
 import retrofit2.http.Body
 import retrofit2.http.POST
 import org.junit.After
+import java.io.ByteArrayOutputStream
+import java.util.Base64
+import okio.BufferedSink
 
 class RetrofitNetworkFactoryTest {
 
@@ -118,13 +122,14 @@ class RetrofitNetworkFactoryTest {
             server.enqueue(MockResponse(code = 200, body = "ok"))
             server.start()
 
-            val logger = RecordingLogProvider()
+            val logger = RecordingLogProvider(sensitive = true)
             LogRegistry.install(logger)
             val config = RetrofitNetworkConfig(
                 baseUrl = server.url("/").toString(),
             )
             val client = RetrofitNetworkFactory.createOkHttpClient(
                 config = config,
+                redactSensitiveData = false,
             )
 
             client.newCall(
@@ -162,7 +167,7 @@ class RetrofitNetworkFactoryTest {
             )
             server.start()
 
-            val logger = RecordingLogProvider()
+            val logger = RecordingLogProvider(sensitive = true)
             LogRegistry.install(logger)
             val config = RetrofitNetworkConfig(
                 baseUrl = server.url("/").toString(),
@@ -170,6 +175,7 @@ class RetrofitNetworkFactoryTest {
             )
             val client = RetrofitNetworkFactory.createOkHttpClient(
                 config = config,
+                redactSensitiveData = false,
             )
 
             client.newCall(
@@ -185,8 +191,8 @@ class RetrofitNetworkFactoryTest {
 
             val messages = logger.entries.map { it.message }
             assertEquals("[POST]${server.url("/v1/github/login")}", messages[0])
-            assertEquals("X-Client-Id: atlashub", messages[1])
-            assertTrue(messages[1].contains("Authorization").not())
+            assertTrue(messages[1].contains("X-Client-Id: atlashub"))
+            assertTrue(messages[1].contains("Authorization: Bearer client-secret"))
             assertEquals(
                 """{"githubAccessToken":"client-secret","client":{"platform":"android"}}""",
                 messages[2],
@@ -196,6 +202,34 @@ class RetrofitNetworkFactoryTest {
                 """{"access_token":"server-secret","user":{"login":"tospery"}}""",
                 messages[4],
             )
+        }
+    }
+
+    @Test
+    fun defaultDebugLoggingKeepsCredentialsOutOfAnUnprotectedProvider() {
+        MockWebServer().use { server ->
+            server.enqueue(MockResponse(code = 200, body = "{\"token\":\"response-secret\"}"))
+            server.start()
+
+            val logger = RecordingLogProvider()
+            LogRegistry.install(logger)
+            val client = RetrofitNetworkFactory.createOkHttpClient(
+                config = RetrofitNetworkConfig(baseUrl = server.url("/").toString()),
+            )
+
+            client.newCall(
+                Request.Builder()
+                    .url(server.url("/login?token=query-secret"))
+                    .header("Authorization", "Bearer header-secret")
+                    .post("{\"token\":\"body-secret\"}".toRequestBody("application/json".toMediaType()))
+                    .build(),
+            ).execute().close()
+
+            val logged = logger.entries.joinToString("\n") { it.message }
+            assertTrue(logged.contains("query-secret").not())
+            assertTrue(logged.contains("header-secret").not())
+            assertTrue(logged.contains("body-secret").not())
+            assertTrue(logged.contains("response-secret").not())
         }
     }
 
@@ -241,6 +275,169 @@ class RetrofitNetworkFactoryTest {
             ).execute().close()
 
             assertTrue(logger.entries.isEmpty())
+        }
+    }
+
+    @Test
+    fun protectedFullCaptureIncludesGraphQlCredentialsAndCompleteBodies() {
+        MockWebServer().use { server ->
+            val requestText = "request-secret".repeat(200)
+            val responseText = "response-secret".repeat(400)
+            server.enqueue(MockResponse(code = 200, body = responseText))
+            server.start()
+
+            val logger = RecordingLogProvider(sensitive = true)
+            LogRegistry.install(logger)
+            val url = "http://api.github.com:${server.port}/graphql"
+            val client = RetrofitNetworkFactory.createOkHttpClient(
+                config = RetrofitNetworkConfig(baseUrl = server.url("/").toString()),
+                redactSensitiveData = false,
+                captureFullBodies = true,
+                logGraphQl = true,
+            ).newBuilder().dns(
+                object : Dns {
+                    override fun lookup(hostname: String): List<InetAddress> =
+                        if (hostname == "api.github.com") {
+                            listOf(InetAddress.getByName("127.0.0.1"))
+                        } else {
+                            Dns.SYSTEM.lookup(hostname)
+                        }
+                },
+            ).build()
+
+            val body = client.newCall(
+                Request.Builder()
+                    .url(url)
+                    .header("Authorization", "Bearer token-secret")
+                    .post(requestText.toRequestBody("application/json".toMediaType()))
+                    .build(),
+            ).execute().use { it.body.string() }
+
+            assertEquals(responseText, body)
+            assertEquals(requestText, server.takeRequest().body?.utf8())
+            assertTrue(logger.entries.any { it.message.contains("Authorization: Bearer token-secret") })
+            assertEquals(requestText, logger.bodyText("request"))
+            assertEquals(responseText, logger.bodyText("response"))
+            assertTrue(logger.entries.any { it.attribute("body_state") == "complete" })
+        }
+    }
+
+    @Test
+    fun fullCaptureOptInIsIgnoredForUnprotectedProvider() {
+        MockWebServer().use { server ->
+            server.enqueue(MockResponse(code = 200, body = "secret"))
+            server.start()
+
+            val logger = RecordingLogProvider()
+            LogRegistry.install(logger)
+            val url = "http://api.github.com:${server.port}/graphql"
+            val client = RetrofitNetworkFactory.createOkHttpClient(
+                config = RetrofitNetworkConfig(baseUrl = server.url("/").toString()),
+                redactSensitiveData = false,
+                captureFullBodies = true,
+                logGraphQl = true,
+            ).newBuilder().dns(
+                object : Dns {
+                    override fun lookup(hostname: String): List<InetAddress> =
+                        if (hostname == "api.github.com") {
+                            listOf(InetAddress.getByName("127.0.0.1"))
+                        } else {
+                            Dns.SYSTEM.lookup(hostname)
+                        }
+                },
+            ).build()
+
+            client.newCall(Request.Builder().url(url).build()).execute().close()
+
+            assertTrue(logger.entries.isEmpty())
+        }
+    }
+
+    @Test
+    fun fullCaptureMirrorsConsumedBodyWithoutPreReadingAndMarksCapacity() {
+        MockWebServer().use { server ->
+            server.enqueue(MockResponse(code = 200, body = "abcdefghij"))
+            server.start()
+
+            val logger = RecordingLogProvider(sensitive = true)
+            LogRegistry.install(logger)
+            val client = RetrofitNetworkFactory.createOkHttpClient(
+                config = RetrofitNetworkConfig(baseUrl = server.url("/").toString()),
+                redactSensitiveData = false,
+                captureFullBodies = true,
+                fullBodyByteLimit = 4,
+            )
+
+            client.newCall(Request.Builder().url(server.url("/body")).build()).execute().use {
+                assertEquals("", logger.bodyText("response"))
+                assertEquals("abcdefghij", it.body.string())
+            }
+
+            assertEquals("abcd", logger.bodyText("response"))
+            val end = logger.entries.single { it.attribute("direction") == "response" &&
+                it.attribute("kind") == "body_end" }
+            assertEquals("incomplete", end.attribute("body_state"))
+            assertEquals("capacity_limit", end.attribute("body_end_reason"))
+            assertEquals("10", end.attribute("observed_bytes"))
+            assertEquals("4", end.attribute("captured_bytes"))
+        }
+    }
+
+    @Test
+    fun fullCaptureMarksUnconsumedResponseAsInterrupted() {
+        MockWebServer().use { server ->
+            server.enqueue(MockResponse(code = 200, body = "not-read"))
+            server.start()
+
+            val logger = RecordingLogProvider(sensitive = true)
+            LogRegistry.install(logger)
+            val client = RetrofitNetworkFactory.createOkHttpClient(
+                config = RetrofitNetworkConfig(baseUrl = server.url("/").toString()),
+                redactSensitiveData = false,
+                captureFullBodies = true,
+            )
+
+            client.newCall(Request.Builder().url(server.url("/stream")).build()).execute().close()
+
+            assertEquals("", logger.bodyText("response"))
+            val end = logger.entries.single { it.attribute("direction") == "response" &&
+                it.attribute("kind") == "body_end" }
+            assertEquals("incomplete", end.attribute("body_state"))
+            assertEquals("closed_before_eof", end.attribute("body_end_reason"))
+        }
+    }
+
+    @Test
+    fun fullCaptureObservesOneShotRequestOnlyWhenItIsSent() {
+        MockWebServer().use { server ->
+            server.enqueue(MockResponse(code = 200, body = "ok"))
+            server.start()
+
+            val logger = RecordingLogProvider(sensitive = true)
+            LogRegistry.install(logger)
+            val client = RetrofitNetworkFactory.createOkHttpClient(
+                config = RetrofitNetworkConfig(baseUrl = server.url("/").toString()),
+                redactSensitiveData = false,
+                captureFullBodies = true,
+            )
+            var writeCount = 0
+            val body = object : RequestBody() {
+                override fun contentType() = "application/octet-stream".toMediaType()
+
+                override fun isOneShot() = true
+
+                override fun writeTo(sink: BufferedSink) {
+                    writeCount++
+                    sink.writeUtf8("one-shot-secret")
+                }
+            }
+
+            client.newCall(Request.Builder().url(server.url("/upload")).post(body).build())
+                .execute().close()
+
+            assertEquals(1, writeCount)
+            assertEquals("one-shot-secret", server.takeRequest().body?.utf8())
+            assertEquals("one-shot-secret", logger.bodyText("request"))
         }
     }
 
@@ -399,8 +596,11 @@ class RetrofitNetworkFactoryTest {
 
     private class RecordingLogProvider(
         private val minimumLevel: LogLevel = LogLevel.VERBOSE,
+        private val sensitive: Boolean = false,
     ) : LogProvider {
         val entries = mutableListOf<LogEntry>()
+
+        override val supportsSensitiveData: Boolean get() = sensitive
 
         override fun isLoggable(
             level: LogLevel,
@@ -417,5 +617,18 @@ class RetrofitNetworkFactoryTest {
             prefix = " {",
             postfix = "}",
         ) { "${it.key}=${it.value}" }
+    }
+
+    private fun LogEntry.attribute(key: String): String? =
+        attributes.firstOrNull { it.key == key }?.value
+
+    private fun RecordingLogProvider.bodyText(direction: String): String {
+        val output = ByteArrayOutputStream()
+        entries.filter {
+            it.attribute("direction") == direction && it.attribute("kind") == "body_chunk"
+        }.sortedBy { it.attribute("chunk_index")?.toLong() }.forEach {
+            output.write(Base64.getDecoder().decode(it.message))
+        }
+        return output.toString(Charsets.UTF_8)
     }
 }

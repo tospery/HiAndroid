@@ -15,12 +15,18 @@ import retrofit2.converter.moshi.MoshiConverterFactory
 object RetrofitNetworkFactory {
     /**
      * 根据通用配置创建 OkHttpClient。
+     *
+     * 完整正文及原始认证值必须由已安装的受保护 LogProvider 承接；未满足时参数会安全
+     * 退回脱敏、限长模式。完整模式按实际发送/读取的字节记录分块日志，不预读流式响应。
      */
     fun createOkHttpClient(
         config: RetrofitNetworkConfig,
-        // DEBUG 日志可输出原始诊断值；INFO 起步的 Release 日志始终脱敏。
-        redactSensitiveData: Boolean = !isLoggable(LogLevel.DEBUG, NET_LOG_TAG),
+        // Raw capture is honored only when the installed provider declares a protected sink.
+        redactSensitiveData: Boolean = true,
         logBodies: Boolean = true,
+        captureFullBodies: Boolean = false,
+        logGraphQl: Boolean = false,
+        fullBodyByteLimit: Long = 100L * 1024L * 1024L,
         configure: OkHttpClient.Builder.() -> Unit = {},
     ): OkHttpClient {
         return OkHttpClient.Builder()
@@ -40,6 +46,9 @@ object RetrofitNetworkFactory {
                         AppLoggerInterceptor(
                             redactSensitiveData = redactSensitiveData,
                             logBodies = logBodies,
+                            captureFullBodies = captureFullBodies,
+                            logGraphQl = logGraphQl,
+                            fullBodyByteLimit = fullBodyByteLimit,
                         )
                     )
                 }
