@@ -11,8 +11,9 @@ sealed interface SuiteListContentState {
 
     data object Empty : SuiteListContentState
 
+    /** [error] 为空时表示调用方自行给出错误文案，没有可展示的异常。 */
     data class Error(
-        val error: Throwable,
+        val error: Throwable? = null,
     ) : SuiteListContentState
 
     data object Content : SuiteListContentState
@@ -27,7 +28,7 @@ sealed interface SuiteListContentState {
 fun SuiteListStateLayout(
     state: SuiteListContentState,
     empty: @Composable () -> Unit,
-    error: @Composable (Throwable) -> Unit,
+    error: @Composable (Throwable?) -> Unit,
     modifier: Modifier = Modifier,
     loading: @Composable () -> Unit = { SuiteListLoadingState(modifier = modifier) },
     content: @Composable () -> Unit,
