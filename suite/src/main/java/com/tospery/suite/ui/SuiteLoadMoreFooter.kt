@@ -27,6 +27,7 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.dp
 import com.tospery.suite.R
 import kotlin.math.abs
@@ -135,7 +136,12 @@ private fun SuiteLoadMoreDots() {
             label = "suite_load_more_phase",
         )
 
-    Canvas(modifier = Modifier.size(width = 42.dp, height = 20.dp)) {
+    Canvas(
+        modifier =
+            Modifier
+                .size(width = 42.dp, height = 20.dp)
+                .testTag("suite_load_more_dots"),
+    ) {
         repeat(DOT_COUNT) { index ->
             val linearDistance = abs(phase.value - index)
             val circularDistance = min(linearDistance, DOT_COUNT - linearDistance)
