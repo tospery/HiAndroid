@@ -1,4 +1,4 @@
-package com.tospery.suite.cache
+package com.tospery.core.cache
 
 import java.io.File
 import kotlinx.coroutines.test.StandardTestDispatcher

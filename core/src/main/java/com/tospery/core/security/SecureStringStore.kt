@@ -1,4 +1,4 @@
-package com.tospery.suite.security
+package com.tospery.core.security
 
 import android.content.Context
 import android.content.SharedPreferences
@@ -6,7 +6,7 @@ import android.security.keystore.KeyGenParameterSpec
 import android.security.keystore.KeyProperties
 import android.util.Base64
 import androidx.core.content.edit
-import com.tospery.buildmetadata.module_suite.ModuleMetadata
+import com.tospery.buildmetadata.module_core.ModuleMetadata
 import com.tospery.base.error.UnknownAppError
 import com.tospery.base.logging.LogTags
 import com.tospery.base.result.AppResult
@@ -18,7 +18,7 @@ import javax.crypto.KeyGenerator
 import javax.crypto.SecretKey
 import javax.crypto.spec.GCMParameterSpec
 
-private val suiteLogTag = LogTags.moduleTag(ModuleMetadata.path)
+private val coreLogTag = LogTags.moduleTag(ModuleMetadata.path)
 
 /**
  * 安全字符串存储契约。
@@ -235,7 +235,7 @@ class AndroidKeystoreSecureStringStore(
         throwable: Throwable,
     ): AppResult.Failure {
         error(
-            tag = suiteLogTag,
+            tag = coreLogTag,
             throwable = throwable,
         ) {
             message

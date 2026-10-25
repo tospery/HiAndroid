@@ -1,4 +1,4 @@
-package com.tospery.suite.cache
+package com.tospery.core.cache
 
 import com.tospery.base.error.UnknownAppError
 import com.tospery.base.result.AppResult

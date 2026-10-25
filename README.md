@@ -14,13 +14,29 @@ application-specific business logic.
 | Gradle module | Maven coordinate | Package | Purpose |
 | --- | --- | --- | --- |
 | `:base` | `com.tospery:base:0.0.2` | JAR | Pure Kotlin base models, logging and analytics abstractions. |
-| `:core` | `com.tospery:core:0.0.2` | AAR | Reusable Android and Jetpack Compose core utilities. |
+| `:core` | `com.tospery:core:0.0.2` | AAR | Reusable Android platform utilities without Jetpack Compose. |
 | `:nav` | `com.tospery:nav:0.0.2` | JAR | Platform-independent URL and URI navigation abstractions. |
 | `:net` | `com.tospery:net:0.0.2` | JAR | Platform-independent networking contracts and models. |
 | `:net:retrofit` | `com.tospery:net-retrofit:0.0.2` | JAR | Retrofit, OkHttp and Moshi implementation for `:net`. |
 | `:suite` | `com.tospery:suite:0.0.2` | AAR | Reusable Android app utilities and Compose components. |
 | `:github:model:core` | `com.tospery:github-model-core:0.0.2` | JAR | Stable models shared by GitHub integrations. |
 | `:github:trending` | `com.tospery:github-trending:0.0.2` | JAR | GitHub Trending URL building, fetching and HTML parsing. |
+
+### Module layering
+
+- `:base` is pure Kotlin and has no third-party runtime dependencies.
+- `:core` holds Android platform utilities. It may depend only on AndroidX
+  core/annotation libraries and Kotlin coroutines; it never depends on
+  Jetpack Compose or vendor SDKs, so non-Compose apps can use it.
+- `:suite` holds Compose components and heavier integrations such as Coil,
+  Media3, Timber and Retrofit.
+
+`:core` currently provides string resource access, the Android Keystore
+backed `SecureStringStore`, the `AppCacheStore` / `AppCacheManager`
+cache abstractions, `Context` helpers (`findActivity`,
+`copyPlainTextToClipboard`, `safeStartActivity`,
+`appPackageVersionOrNull`), `GooglePlayStoreLauncher` and
+`SupportedLinksSettingsLauncher`.
 
 ### Shared Android UI strings
 

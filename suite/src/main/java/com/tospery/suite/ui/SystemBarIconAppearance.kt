@@ -1,12 +1,10 @@
 package com.tospery.suite.ui
 
-import android.app.Activity
-import android.content.Context
-import android.content.ContextWrapper
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.ui.platform.LocalView
 import androidx.core.view.WindowCompat
+import com.tospery.core.content.findActivity
 
 /**
  * 为 Compose 页面设置系统栏图标明暗外观。
@@ -44,9 +42,3 @@ fun SystemBarIconAppearance(
     }
 }
 
-private tailrec fun Context.findActivity(): Activity? =
-    when (this) {
-        is Activity -> this
-        is ContextWrapper -> baseContext.findActivity()
-        else -> null
-    }
