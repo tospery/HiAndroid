@@ -9,8 +9,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalDensity
 
+/** 一物理像素粗细的浅色水平分割线，默认使用 `outlineVariant` 的 70% 不透明度。 */
 @Composable
-internal fun OnePixelHorizontalDivider(
+fun SuiteHorizontalDivider(
     modifier: Modifier = Modifier,
     color: Color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = DIVIDER_ALPHA),
 ) {

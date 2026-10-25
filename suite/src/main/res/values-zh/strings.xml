@@ -23,4 +23,7 @@
     <string name="suite_load_more_retry">重试</string>
     <string name="suite_list_updated">列表已更新</string>
     <string name="suite_list_view">查看</string>
+    <string name="suite_pdf_error_description">无法打开该 PDF，文件可能已损坏、已加密或包含暂不支持的特性。</string>
+    <string name="suite_pdf_page_error">无法渲染 PDF 第 %1$d 页。</string>
+    <string name="suite_pdf_page_description">PDF 第 %1$d 页，共 %2$d 页</string>
 </resources>

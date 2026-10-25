@@ -117,7 +117,7 @@ fun SuiteListDialogContent(
                     }
                 }
 
-                OnePixelHorizontalDivider()
+                SuiteHorizontalDivider()
 
                 /*
                  * fill = false 让短列表按内容收起；weight 同时为长列表提供有限高度，

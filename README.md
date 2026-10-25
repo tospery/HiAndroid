@@ -38,6 +38,12 @@ cache abstractions, `Context` helpers (`findActivity`,
 `appPackageVersionOrNull`), `GooglePlayStoreLauncher` and
 `SupportedLinksSettingsLauncher`.
 
+`:suite` also provides `CoilAppCacheStore` (an `AppCacheStore` for a Coil
+`ImageLoader`), `SuiteHorizontalDivider` (a one physical pixel divider) and
+`SuitePdfViewer` (pinch-to-zoom PDF pages rendered with `PdfRenderer`, with
+its own localized error text). `:net` provides `SseLineParser` for
+extracting `data:` payloads from line-based Server-Sent Events streams.
+
 ### Shared Android UI strings
 
 `:suite` publishes `suite_action_retry` (`Retry` / `重试`) and

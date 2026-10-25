@@ -39,7 +39,7 @@ fun SuiteCenterAlignedTopAppBar(
                 ),
         )
         if (showDivider) {
-            OnePixelHorizontalDivider(
+            SuiteHorizontalDivider(
                 color =
                     MaterialTheme.colorScheme.outlineVariant.copy(
                         alpha = TOP_APP_BAR_DIVIDER_ALPHA,
