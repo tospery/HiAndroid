@@ -2,5 +2,6 @@
     <public name="suite_action_retry" type="string" />
     <public name="suite_navigate_back_content_description" type="string" />
     <public name="suite_load_more_loading" type="string" />
+    <public name="suite_load_more_failed" type="string" />
     <public name="suite_load_more_retry" type="string" />
 </resources>

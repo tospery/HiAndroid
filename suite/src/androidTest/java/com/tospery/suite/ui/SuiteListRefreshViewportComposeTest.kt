@@ -13,6 +13,7 @@ import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.runtime.mutableStateListOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
@@ -106,21 +107,48 @@ class SuiteListRefreshViewportComposeTest {
         composeRule.runOnIdle { assertNull(harness.snackbarHostState.currentSnackbarData) }
     }
 
+    @Test
+    fun manualRefreshStaysQuietAndLaterSilentUpdateOffersViewAction() {
+        val harness = showList()
+        moveRowThreeToTop(harness)
+        composeRule.runOnIdle {
+            harness.gate.onManualRefresh()
+            harness.refreshLoading.value = true
+        }
+        composeRule.runOnIdle { harness.rows.add(0, "manual") }
+        composeRule.waitForIdle()
+        composeRule.runOnIdle { assertNull(harness.snackbarHostState.currentSnackbarData) }
+
+        composeRule.runOnIdle { harness.refreshLoading.value = false }
+        composeRule.waitUntil(5_000) { !harness.gate.suppressUpdatePrompt }
+        composeRule.runOnIdle { harness.rows.add(0, "silent") }
+        composeRule.waitUntil(5_000) {
+            harness.snackbarHostState.currentSnackbarData != null
+        }
+        composeRule.runOnIdle {
+            assertEquals("row3", harness.listState.topVisibleKey())
+        }
+    }
+
     private fun showList(): Harness {
         val rows = mutableStateListOf<String>().apply { addAll((1..30).map { "row$it" }) }
         lateinit var listState: LazyListState
         lateinit var snackbarHostState: SnackbarHostState
+        lateinit var gate: SuiteListUpdatePromptGate
         lateinit var scope: CoroutineScope
+        val refreshLoading = mutableStateOf(false)
         composeRule.setContent {
             listState = rememberLazyListState()
             snackbarHostState = remember { SnackbarHostState() }
             scope = rememberCoroutineScope()
+            gate = rememberSuiteListUpdatePromptGate(refreshLoading = refreshLoading.value)
             MaterialTheme {
                 Box(Modifier.fillMaxSize()) {
                     SuiteListRefreshViewportEffect(
                         keys = rows.toList(),
                         listState = listState,
                         snackbarHostState = snackbarHostState,
+                        promptGate = gate,
                     )
                     LazyColumn(
                         state = listState,
@@ -141,7 +169,7 @@ class SuiteListRefreshViewportComposeTest {
             }
         }
         composeRule.waitForIdle()
-        return Harness(rows, listState, snackbarHostState, scope)
+        return Harness(rows, listState, snackbarHostState, gate, refreshLoading, scope)
     }
 
     private fun moveRowThreeToTop(harness: Harness) {
@@ -164,6 +192,8 @@ class SuiteListRefreshViewportComposeTest {
         val rows: androidx.compose.runtime.snapshots.SnapshotStateList<String>,
         val listState: LazyListState,
         val snackbarHostState: SnackbarHostState,
+        val gate: SuiteListUpdatePromptGate,
+        val refreshLoading: androidx.compose.runtime.MutableState<Boolean>,
         val scope: CoroutineScope,
     )
 }

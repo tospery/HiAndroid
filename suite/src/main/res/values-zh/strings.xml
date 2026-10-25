@@ -20,7 +20,8 @@
     <string name="suite_media_player_play">播放</string>
     <string name="suite_media_player_pause">暂停</string>
     <string name="suite_media_player_time">%1$s / %2$s</string>
-    <string name="suite_load_more_loading">正在加载</string>
+    <string name="suite_load_more_loading">正在加载更多</string>
+    <string name="suite_load_more_failed">加载失败</string>
     <string name="suite_load_more_retry">重试</string>
     <string name="suite_list_updated">列表已更新</string>
     <string name="suite_list_view">查看</string>

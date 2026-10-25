@@ -19,6 +19,53 @@ import androidx.compose.ui.res.stringResource
 import com.tospery.suite.R
 import kotlinx.coroutines.launch
 
+/** Keeps user-driven refresh and append results from producing a list-update prompt. */
+class SuiteListUpdatePromptGate internal constructor() {
+    private var manualRefreshPending by mutableStateOf(false)
+    private var appendPending by mutableStateOf(false)
+    private var manualRefreshStarted = false
+
+    val suppressUpdatePrompt: Boolean
+        get() = manualRefreshPending || appendPending
+
+    fun onManualRefresh() {
+        manualRefreshPending = true
+        manualRefreshStarted = false
+    }
+
+    internal suspend fun onLoadStateChanged(
+        refreshLoading: Boolean,
+        appendLoading: Boolean,
+    ) {
+        if (refreshLoading && manualRefreshPending) manualRefreshStarted = true
+        if (appendLoading) appendPending = true
+        if ((!refreshLoading && manualRefreshPending && manualRefreshStarted) ||
+            (!appendLoading && appendPending)
+        ) {
+            // Let Paging publish the final snapshot before allowing silent-update feedback again.
+            withFrameNanos { }
+            withFrameNanos { }
+            if (!refreshLoading && manualRefreshStarted) {
+                manualRefreshPending = false
+                manualRefreshStarted = false
+            }
+            if (!appendLoading) appendPending = false
+        }
+    }
+}
+
+@Composable
+fun rememberSuiteListUpdatePromptGate(
+    refreshLoading: Boolean,
+    appendLoading: Boolean = false,
+): SuiteListUpdatePromptGate {
+    val gate = remember { SuiteListUpdatePromptGate() }
+    LaunchedEffect(gate, refreshLoading, appendLoading, gate.suppressUpdatePrompt) {
+        gate.onLoadStateChanged(refreshLoading, appendLoading)
+    }
+    return gate
+}
+
 private data class VisibleRow(
     val index: Int,
     val offset: Int,
@@ -72,6 +119,10 @@ fun resolveListRefreshPlacement(
     ) {
         return SuiteListRefreshPlacement(index = null)
     }
+    // Appending rows after the existing snapshot does not replace the reader's viewport.
+    if (newKeys.size > oldKeys.size && newKeys.subList(0, oldKeys.size) == oldKeys) {
+        return SuiteListRefreshPlacement(index = null)
+    }
     val oldHead = oldKeys[previous.leadingItems]
     val newHead = newKeys[previous.leadingItems]
     val wasAtTop =
@@ -114,6 +165,7 @@ fun SuiteListRefreshViewportEffect(
     leadingItems: Int = 0,
     updatedMessage: String = stringResource(R.string.suite_list_updated),
     viewAction: String = stringResource(R.string.suite_list_view),
+    promptGate: SuiteListUpdatePromptGate? = null,
 ) {
     val currentKeys by rememberUpdatedState(keys)
     val effectScope = rememberCoroutineScope()
@@ -211,7 +263,7 @@ fun SuiteListRefreshViewportEffect(
                 withFrameNanos { }
                 listState.animateScrollToItem(0)
             }
-        } else if (placement.showUpdate) {
+        } else if (placement.showUpdate && promptGate?.suppressUpdatePrompt != true) {
             effectScope.launch {
                 if (
                     snackbarHostState.showSnackbar(

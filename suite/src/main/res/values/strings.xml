@@ -20,8 +20,9 @@
     <string name="suite_media_player_play">Play</string>
     <string name="suite_media_player_pause">Pause</string>
     <string name="suite_media_player_time">%1$s / %2$s</string>
-    <string name="suite_load_more_loading">Loading…</string>
-    <string name="suite_load_more_retry">Retry…</string>
+    <string name="suite_load_more_loading">Loading more…</string>
+    <string name="suite_load_more_failed">Couldn’t load more</string>
+    <string name="suite_load_more_retry">Retry</string>
     <string name="suite_list_updated">List updated</string>
     <string name="suite_list_view">View</string>
     <string name="suite_pdf_error_description">This PDF could not be opened. The file may be invalid, encrypted, or use unsupported features.</string>

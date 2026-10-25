@@ -72,10 +72,13 @@ class SuiteListRefreshViewportTest {
 
     @Test
     fun appendAndFirstLoadDoNotOfferUpdate() {
-        assertFalse(
-            resolveListRefreshPlacement(viewport(listOf("row1"), 0), listOf("row1", "row2"))
-                .showUpdate,
-        )
+        val appendPlacement =
+            resolveListRefreshPlacement(
+                viewport(listOf("row1", "row2", "row3"), 2, offset = 11),
+                listOf("row1", "row2", "row3", "row4"),
+            )
+        assertEquals(null, appendPlacement.index)
+        assertFalse(appendPlacement.showUpdate)
         assertEquals(
             null,
             resolveListRefreshPlacement(viewport(emptyList(), 0), listOf("row1")).index,
