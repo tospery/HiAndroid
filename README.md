@@ -41,7 +41,13 @@ cache abstractions, `Context` helpers (`findActivity`,
 `:suite` also provides `CoilAppCacheStore` (an `AppCacheStore` for a Coil
 `ImageLoader`), `SuiteHorizontalDivider` (a one physical pixel divider) and
 `SuitePdfViewer` (pinch-to-zoom PDF pages rendered with `PdfRenderer`, with
-its own localized error text). `:net` provides `SseLineParser` for
+its own localized error text). `SuiteSnackbarHost` keeps text-only messages
+centered and content-width when they occupy one rendered line; wrapped messages
+and messages with actions use the available width inside 16dp side insets.
+Wrapped messages are start-aligned, and all messages are limited to five lines
+with an ellipsis. The host
+owns those side insets, so callers should only add vertical or system-bar
+padding. `:net` provides `SseLineParser` for
 extracting `data:` payloads from line-based Server-Sent Events streams.
 
 ### Shared Android UI strings

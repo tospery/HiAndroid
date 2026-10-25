@@ -1,6 +1,7 @@
 <resources>
     <string name="suite_clear_text">Clear text</string>
     <string name="suite_close_dialog">Close dialog</string>
+    <string name="suite_snackbar_dismiss">Dismiss message</string>
     <string name="suite_action_retry">Retry</string>
     <string name="suite_navigate_back_content_description">Navigate back</string>
     <string name="suite_web_back">Back</string>

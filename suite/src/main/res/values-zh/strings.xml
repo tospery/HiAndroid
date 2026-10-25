@@ -1,6 +1,7 @@
 <resources>
     <string name="suite_clear_text">清空文本</string>
     <string name="suite_close_dialog">关闭弹窗</string>
+    <string name="suite_snackbar_dismiss">关闭提示</string>
     <string name="suite_action_retry">重试</string>
     <string name="suite_navigate_back_content_description">返回</string>
     <string name="suite_web_back">返回</string>

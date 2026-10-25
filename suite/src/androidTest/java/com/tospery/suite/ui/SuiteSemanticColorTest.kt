@@ -16,9 +16,12 @@ import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.test.captureToImage
 import androidx.compose.ui.test.junit4.v2.createComposeRule
+import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.unit.dp
+import androidx.test.platform.app.InstrumentationRegistry
+import com.tospery.suite.R
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Rule
@@ -112,6 +115,9 @@ class SuiteSemanticColorTest {
 
         composeTestRule.onNodeWithText(SnackbarMessage).assertExists()
         composeTestRule.onNodeWithText(SnackbarActionLabel).assertExists()
+        val dismissLabel =
+            InstrumentationRegistry.getInstrumentation().targetContext.getString(R.string.suite_snackbar_dismiss)
+        composeTestRule.onNodeWithContentDescription(dismissLabel).assertExists()
         assertContainsColor(tag = SnackbarHostTag, expectedColor = SnackbarContainer)
         assertContainsColor(tag = SnackbarHostTag, expectedColor = SnackbarContent)
         assertContainsColor(tag = SnackbarHostTag, expectedColor = SnackbarAction)
