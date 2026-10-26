@@ -413,7 +413,7 @@ private object AndroidUmengPerformanceSdk : UmengPerformanceSdk {
     @Suppress("DEPRECATION")
     override fun disable() {
         UMCrash.initConfig(disabledUmengBundle())
-        // U-APM 2.0.8 没有统一 shutdown API；授权撤回后同时关闭仍可运行时切换的采集器。
+        // U-APM 2.1.0 仍没有统一 shutdown API；授权撤回后同时关闭仍可运行时切换的采集器。
         UMCrash.enableNativeLog(false)
         UMCrash.enableANRLog(false)
         UMCrash.enableMemoryMonitor(false)
