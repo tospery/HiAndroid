@@ -7,20 +7,27 @@ Jetpack Compose utilities, Retrofit integration, and reusable GitHub
 models and GitHub Trending parsing APIs. It does not contain AtlasHub
 application-specific business logic.
 
-> **Status:** This project is in pre-release development. Public APIs may change before `1.0.0`.
+> **Status:** Version `1.0.0` is the first stable release of HiAndroid.
 
 ## Modules
 
 | Gradle module | Maven coordinate | Package | Purpose |
 | --- | --- | --- | --- |
-| `:base` | `com.tospery:base:0.0.2` | JAR | Pure Kotlin base models, logging and analytics abstractions. |
-| `:core` | `com.tospery:core:0.0.2` | AAR | Reusable Android platform utilities without Jetpack Compose. |
-| `:nav` | `com.tospery:nav:0.0.2` | JAR | Platform-independent URL and URI navigation abstractions. |
-| `:net` | `com.tospery:net:0.0.2` | JAR | Platform-independent networking contracts and models. |
-| `:net:retrofit` | `com.tospery:net-retrofit:0.0.2` | JAR | Retrofit, OkHttp and Moshi implementation for `:net`. |
-| `:suite` | `com.tospery:suite:0.0.2` | AAR | Reusable Android app utilities and Compose components. |
-| `:github:model:core` | `com.tospery:github-model-core:0.0.2` | JAR | Stable models shared by GitHub integrations. |
-| `:github:trending` | `com.tospery:github-trending:0.0.2` | JAR | GitHub Trending URL building, fetching and HTML parsing. |
+| `:base` | `com.tospery:base:1.0.0` | JAR | Pure Kotlin base models, logging and analytics abstractions. |
+| `:core` | `com.tospery:core:1.0.0` | AAR | Reusable Android platform utilities without Jetpack Compose. |
+| `:nav` | `com.tospery:nav:1.0.0` | JAR | Platform-independent URL and URI navigation abstractions. |
+| `:net` | `com.tospery:net:1.0.0` | JAR | Platform-independent networking contracts and models. |
+| `:net:retrofit` | `com.tospery:net-retrofit:1.0.0` | JAR | Retrofit, OkHttp and Moshi implementation for `:net`. |
+| `:suite` | `com.tospery:suite:1.0.0` | AAR | Reusable Android app utilities and Compose components. |
+| `:suite-aliyun-emas-core` | `com.tospery:suite-aliyun-emas-core:1.0.0` | AAR | Alibaba Cloud EMAS monitoring adapter. |
+| `:suite-umeng-core` | `com.tospery:suite-umeng-core:1.0.0` | AAR | Shared privacy-aware Umeng runtime. |
+| `:suite-analytics-umeng` | `com.tospery:suite-analytics-umeng:1.0.0` | AAR | Umeng analytics adapter. |
+| `:suite-performance-umeng` | `com.tospery:suite-performance-umeng:1.0.0` | AAR | Umeng U-APM adapter. |
+| `:suite-nav-compose` | `com.tospery:suite-nav-compose:1.0.0` | AAR | Jetpack Navigation Compose adapter. |
+| `:suite-nav-umeng-ulink` | `com.tospery:suite-nav-umeng-ulink:1.0.0` | AAR | Umeng U-Link navigation adapter. |
+| `:suite-share-umeng` | `com.tospery:suite-share-umeng:1.0.0` | AAR | Umeng U-Share adapter. |
+| `:github:model:core` | `com.tospery:github-model-core:1.0.0` | JAR | Stable models shared by GitHub integrations. |
+| `:github:trending` | `com.tospery:github-trending:1.0.0` | JAR | GitHub Trending URL building, fetching and HTML parsing. |
 
 ### Module layering
 
@@ -108,8 +115,8 @@ Example dependencies:
 
 ```kotlin
 dependencies {
-    implementation("com.tospery:suite:0.0.2")
-    implementation("com.tospery:github-trending:0.0.2")
+    implementation("com.tospery:suite:1.0.0")
+    implementation("com.tospery:github-trending:1.0.0")
 }
 ```
 
@@ -168,7 +175,7 @@ The consuming module continues to use normal Maven coordinates:
 
 ```kotlin
 dependencies {
-    implementation("com.tospery:suite:0.0.2")
+    implementation("com.tospery:suite:1.0.0")
 }
 ```
 
@@ -183,8 +190,7 @@ The project follows semantic versioning:
 
 - `0.0.x` versions are pre-release development versions.
 - Public APIs may change between `0.0.x` versions.
-- `1.0.0` will be released when the public APIs are stable and the host
-  application is ready for its public release.
+- `1.0.0` is the first stable release, prepared alongside AtlasHub Android.
 - Published release versions are immutable and must never be overwritten.
 
 ## License

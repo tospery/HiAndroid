@@ -122,7 +122,7 @@ data class MavenModuleMetadata(
 )
 
 val hiAndroidGroupId = "com.tospery"
-val hiAndroidVersion = "0.0.2"
+val hiAndroidVersion = "1.0.0"
 val hiAndroidRepositoryUrl =
     "https://github.com/tospery/HiAndroid"
 
