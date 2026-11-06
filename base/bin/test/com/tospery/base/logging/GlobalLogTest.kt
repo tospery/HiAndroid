@@ -35,6 +35,16 @@ class GlobalLogTest {
     }
 
     @Test
+    fun sensitiveLoggingRequiresProviderOptIn() {
+        assertFalse(supportsSensitiveLogging())
+
+        val provider = RecordingLogProvider(sensitive = true)
+        LogRegistry.install(provider)
+
+        assertTrue(supportsSensitiveLogging())
+    }
+
+    @Test
     fun filteredLogDoesNotEvaluateMessage() {
         val provider = RecordingLogProvider(loggable = false)
         LogRegistry.install(provider)
@@ -80,8 +90,11 @@ class GlobalLogTest {
 
     private class RecordingLogProvider(
         private val loggable: Boolean = true,
+        private val sensitive: Boolean = false,
     ) : LogProvider {
         val entries = mutableListOf<LogEntry>()
+
+        override val supportsSensitiveData: Boolean get() = sensitive
 
         override fun isLoggable(
             level: LogLevel,

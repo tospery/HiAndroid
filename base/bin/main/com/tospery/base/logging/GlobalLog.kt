@@ -6,6 +6,9 @@ package com.tospery.base.logging
  * 具体输出方式由 suite 或应用层提供，base 不依赖 Timber、Android Log 等实现。
  */
 interface LogProvider {
+    /** Only encrypted or otherwise protected sinks may accept raw credentials and bodies. */
+    val supportsSensitiveData: Boolean get() = false
+
     fun isLoggable(
         level: LogLevel,
         tag: String?,
@@ -44,6 +47,8 @@ fun isLoggable(
     level: LogLevel,
     tag: String? = null,
 ): Boolean = LogRegistry.current().isLoggable(level = level, tag = tag)
+
+fun supportsSensitiveLogging(): Boolean = LogRegistry.current().supportsSensitiveData
 
 fun log(
     level: LogLevel = LogLevel.DEBUG,
