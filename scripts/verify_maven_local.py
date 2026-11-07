@@ -5,12 +5,15 @@ from pathlib import Path
 from xml.etree import ElementTree
 
 GROUP_ID = "com.tospery"
-VERSION = "1.0.0"
+VERSION = "2.0.0"
 REPOSITORY = Path.home() / ".m2/repository/com/tospery"
 
 MODULES = {
     "base": ("jar", set()),
     "core": ("aar", {("base", "compile")}),
+    "store": ("jar", {("base", "compile")}),
+    "store-datastore": ("aar", {("store", "compile")}),
+    "store-keystore": ("aar", {("store", "compile")}),
     "nav": ("jar", {("base", "compile")}),
     "net": ("jar", {("base", "compile")}),
     "net-retrofit": (
@@ -24,12 +27,12 @@ MODULES = {
         "aar",
         {
             ("base", "compile"),
-            ("core", "compile"),
-            ("nav", "compile"),
-            ("net", "compile"),
-            ("net-retrofit", "runtime"),
+            ("core", "runtime"),
         },
     ),
+    "suite-coil": ("aar", {("suite", "compile"), ("store", "compile")}),
+    "suite-media3": ("aar", {("suite", "compile")}),
+    "suite-log-timber": ("aar", {("base", "compile")}),
     "suite-aliyun-emas-core": (
         "aar",
         {("base", "compile")},
@@ -52,22 +55,37 @@ MODULES = {
             ("suite-umeng-core", "compile"),
         },
     ),
-    "suite-nav-compose": (
+    "nav-compose": (
         "aar",
         {("nav", "compile")},
     ),
-    "suite-nav-umeng-ulink": (
+    "nav-umeng-ulink": (
         "aar",
         {
             ("base", "compile"),
             ("suite-umeng-core", "compile"),
         },
     ),
-    "suite-share-umeng": (
+    "suite-socialsharing-umeng": (
         "aar",
         {
             ("base", "compile"),
             ("suite-umeng-core", "compile"),
+        },
+    ),
+    "hiandroid": (
+        "aar",
+        {
+            ("base", "compile"),
+            ("core", "compile"),
+            ("nav", "compile"),
+            ("nav-compose", "compile"),
+            ("net", "compile"),
+            ("net-retrofit", "compile"),
+            ("store", "compile"),
+            ("store-datastore", "compile"),
+            ("store-keystore", "compile"),
+            ("suite", "compile"),
         },
     ),
     "github-model-core": ("jar", set()),

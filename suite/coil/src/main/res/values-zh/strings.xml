@@ -1,0 +1,4 @@
+<resources>
+    <string name="suite_image_viewer_image_error_title">无法显示图片</string>
+    <string name="suite_image_viewer_image_error_description">无法下载或解析该图片。</string>
+</resources>

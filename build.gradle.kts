@@ -122,7 +122,7 @@ data class MavenModuleMetadata(
 )
 
 val hiAndroidGroupId = "com.tospery"
-val hiAndroidVersion = "1.0.0"
+val hiAndroidVersion = "2.0.0"
 val hiAndroidRepositoryUrl =
     "https://github.com/tospery/HiAndroid"
 
@@ -143,6 +143,24 @@ val hiAndroidPublicationModules = mapOf(
         displayName = "Tospery Core",
         description =
             "Reusable Android and Compose core utilities.",
+    ),
+    ":store" to MavenModuleMetadata(
+        artifactId = "store",
+        displayName = "Tospery Store",
+        description =
+            "Reusable Android storage contracts, secure values and cache stores.",
+    ),
+    ":store:datastore" to MavenModuleMetadata(
+        artifactId = "store-datastore",
+        displayName = "Tospery Store DataStore",
+        description =
+            "AndroidX DataStore adapter for Tospery storage contracts.",
+    ),
+    ":store:keystore" to MavenModuleMetadata(
+        artifactId = "store-keystore",
+        displayName = "Tospery Store Keystore",
+        description =
+            "Android Keystore backed secure string storage adapter.",
     ),
     ":nav" to MavenModuleMetadata(
         artifactId = "nav",
@@ -168,47 +186,68 @@ val hiAndroidPublicationModules = mapOf(
         description =
             "Reusable Android app utilities and Compose components.",
     ),
-    ":suite-aliyun-emas-core" to MavenModuleMetadata(
+    ":suite:coil" to MavenModuleMetadata(
+        artifactId = "suite-coil",
+        displayName = "Tospery Suite Coil",
+        description = "Coil image viewing and cache adapter for Tospery Suite.",
+    ),
+    ":suite:media3" to MavenModuleMetadata(
+        artifactId = "suite-media3",
+        displayName = "Tospery Suite Media3",
+        description = "AndroidX Media3 player UI for Tospery Suite.",
+    ),
+    ":suite:log-timber" to MavenModuleMetadata(
+        artifactId = "suite-log-timber",
+        displayName = "Tospery Suite Timber Logging",
+        description = "Opt-in Timber adapter for Tospery logging contracts.",
+    ),
+    ":suite:aliyun-emas-core" to MavenModuleMetadata(
         artifactId = "suite-aliyun-emas-core",
         displayName = "Tospery Suite Aliyun EMAS Core",
         description =
             "Privacy-aware Alibaba Cloud EMAS mobile monitoring adapter for Tospery Suite.",
     ),
-    ":suite-umeng-core" to MavenModuleMetadata(
+    ":suite:umeng-core" to MavenModuleMetadata(
         artifactId = "suite-umeng-core",
         displayName = "Tospery Suite Umeng Core",
         description =
             "Shared privacy-aware lifecycle runtime for Umeng Android products.",
     ),
-    ":suite-analytics-umeng" to MavenModuleMetadata(
+    ":suite:analytics-umeng" to MavenModuleMetadata(
         artifactId = "suite-analytics-umeng",
         displayName = "Tospery Suite Analytics Umeng",
         description =
             "Umeng analytics adapter for Tospery Suite.",
     ),
-    ":suite-performance-umeng" to MavenModuleMetadata(
+    ":suite:performance-umeng" to MavenModuleMetadata(
         artifactId = "suite-performance-umeng",
         displayName = "Tospery Suite Performance Umeng",
         description =
             "Umeng U-APM performance monitoring adapter for Tospery Suite.",
     ),
-    ":suite-nav-compose" to MavenModuleMetadata(
-        artifactId = "suite-nav-compose",
-        displayName = "Tospery Suite Navigation Compose",
+    ":nav:compose" to MavenModuleMetadata(
+        artifactId = "nav-compose",
+        displayName = "Tospery Navigation Compose",
         description =
             "Jetpack Navigation Compose adapter for Tospery Navigation.",
     ),
-    ":suite-nav-umeng-ulink" to MavenModuleMetadata(
-        artifactId = "suite-nav-umeng-ulink",
-        displayName = "Tospery Suite Navigation Umeng U-Link",
+    ":nav:umeng-ulink" to MavenModuleMetadata(
+        artifactId = "nav-umeng-ulink",
+        displayName = "Tospery Navigation Umeng U-Link",
         description =
             "Umeng U-Link wake-up and deferred navigation adapter.",
     ),
-    ":suite-share-umeng" to MavenModuleMetadata(
-        artifactId = "suite-share-umeng",
-        displayName = "Tospery Suite Share Umeng",
+    ":suite:socialsharing-umeng" to MavenModuleMetadata(
+        artifactId = "suite-socialsharing-umeng",
+        displayName = "Tospery Suite Social Sharing Umeng",
         description =
-            "Umeng U-Share adapter for vendor-independent share contracts.",
+            "Umeng U-Share adapter for vendor-independent social sharing contracts.",
+    ),
+    ":hiandroid" to MavenModuleMetadata(
+        artifactId = "hiandroid",
+        displayName = "HiAndroid",
+        description =
+            "Optional convenience entry for reusable Android modules and defaults.",
     ),
     ":github:model:core" to MavenModuleMetadata(
         artifactId = "github-model-core",
@@ -416,6 +455,9 @@ subprojects {
                 name.endsWith("RuntimeElements")
             ) {
                 outgoing.capability(publicationCapability)
+                if (projectCapability != publicationCapability) {
+                    outgoing.capability(projectCapability)
+                }
             }
         }
     }

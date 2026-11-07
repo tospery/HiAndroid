@@ -11,15 +11,6 @@
     <string name="suite_web_invalid_url">This link cannot be opened.</string>
     <string name="suite_web_load_error">Unable to load this page.</string>
     <string name="suite_web_load_failed">Page loading failed.</string>
-    <string name="suite_image_viewer_image_error_title">Unable to display image</string>
-    <string name="suite_image_viewer_image_error_description">The image could not be downloaded or decoded.</string>
-    <string name="suite_media_player_default_title">Media player</string>
-    <string name="suite_media_player_error_title">Unable to play media</string>
-    <string name="suite_media_player_error_description">The media could not be loaded or its format is not supported on this device.</string>
-    <string name="suite_media_player_loading">Preparing playback</string>
-    <string name="suite_media_player_play">Play</string>
-    <string name="suite_media_player_pause">Pause</string>
-    <string name="suite_media_player_time">%1$s / %2$s</string>
     <string name="suite_load_more_loading">Loading more…</string>
     <string name="suite_load_more_failed">Couldn’t load more</string>
     <string name="suite_load_more_retry">Retry</string>
