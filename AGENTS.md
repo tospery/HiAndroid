@@ -9,6 +9,7 @@ HiAndroid 是与 AtlasHub 业务无关、可独立发布的 Kotlin/Android 效�
 - `:core` 放轻量 Android 平台工具；`:nav`、`:net`、`:store` 定义各自的契约，具体实现优先放在本家族的子模块。
 - `:store` 涵盖数据库、偏好、凭据和其他持久化的通用契约；消费项目拥有自己的表结构、业务键和用户数据隔离策略。
 - `:suite` 放通用视图；Coil、Media3、Timber 与厂商 SDK 分别放可选的 `:suite:*` 子模块。用户可直接选择子模块，`:hiandroid` 只聚合通用默认模块，不自动初始化厂商 SDK。
+- 修改 `:suite` 的公共组件、文案或默认视觉时，读取 [`docs/engineering/ui-components.md`](docs/engineering/ui-components.md)。
 - 社会化分享的项目模块、包和公开类型使用 `socialsharing` / `SocialSharing`；平台原生 API、外部产品名及既有持久化标识按其原语义保留。
 - 子模块依赖必须单向且无环。根 `settings.gradle.kts` 与发布白名单是模块路径和 Maven 坐标的事实源；公开坐标与 Gradle project path 可以不同。
 
