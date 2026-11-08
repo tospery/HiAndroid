@@ -168,6 +168,12 @@ A consuming Gradle project can keep Maven coordinates in its dependency
 declarations while replacing them with a local source checkout through
 a Composite Build.
 
+When using a sibling source checkout, the consumer must commit a full-SHA
+version lock and enforce the Git alignment checks in
+[`docs/engineering/sibling-source-dependency.md`](docs/engineering/sibling-source-dependency.md).
+The `includeBuild` example below only shows coordinate substitution; it is
+not a complete Verification or Release gate.
+
 Add the following to the consuming project's `settings.gradle.kts` and
 adjust the local path as needed:
 
