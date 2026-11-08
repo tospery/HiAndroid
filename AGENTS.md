@@ -18,3 +18,23 @@ HiAndroid 是与 AtlasHub 业务无关、可独立发布的 Kotlin/Android 效�
 - 已发布版本不可覆盖。破坏公开 API 或坐标时升级主版本，写明消费者迁移方式。
 - 修改模块或依赖后运行 `./gradlew check`、`./gradlew publishToMavenLocal` 和 `python3 scripts/verify_maven_local.py`，并从独立 Gradle 消费工程核对 POM、Module Metadata 与传递依赖。
 - `:hiandroid` 是可选入口，多模块消费项目仍按各自编译边界选择最小子库。厂商 SDK 由宿主在隐私授权后显式初始化。
+
+## 消费项目的同级源码依赖
+
+消费项目选择同级源码检出时，必须遵守 [`docs/engineering/sibling-source-dependency.md`](docs/engineering/sibling-source-dependency.md) 的版本锁和 Git 对齐门禁。该规则适用于任何消费项目；消费项目负责把检查接入自己的 Verification、CI 与 Release 入口。HiAndroid 自身不规定消费项目的锁文件名或发布命令。
+
+新增或移动本库文档时，先读取 [`docs/README.md`](docs/README.md)。
+
+## Agent skills
+
+### Issue tracker
+
+本仓库的工作项和规格说明记录在 `tospery/HiAndroid` 的 GitHub Issues 中。详见 `docs/agents/issue-tracker.md`。
+
+### Triage labels
+
+分流使用 `needs-triage`、`needs-info`、`ready-for-agent`、`ready-for-human`、`wontfix` 五个标签。详见 `docs/agents/triage-labels.md`。
+
+### Domain docs
+
+采用单上下文布局：根目录的 `GLOSSARY.md` 和 `docs/adr/` 分别记录术语与架构决策，按需创建。详见 `docs/agents/domain.md`。
