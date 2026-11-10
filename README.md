@@ -32,7 +32,7 @@ verified for public publication.
 | `:suite` | `com.tospery:suite:2.0.0` | AAR | Reusable Compose views. |
 | `:suite:coil` | `com.tospery:suite-coil:2.0.0` | AAR | Optional image viewer and Coil cache adapter. |
 | `:suite:media3` | `com.tospery:suite-media3:2.0.0` | AAR | Optional Media3 player view. |
-| `:suite:log-timber` | `com.tospery:suite-log-timber:2.0.0` | AAR | Optional Timber logger adapter. |
+| `:suite:log-timber` | `com.tospery:suite-log-timber:2.0.0` | AAR | Optional Timber logger adapter: `TimberAppLogger` forwards complete `LogEntry` values; `LogEntryTree` receives them losslessly (attributes, tag, throwable) and synthesizes entries for direct Timber calls. Whether sensitive data is accepted is declared by the host via `supportsSensitiveData`. |
 | `:suite:aliyun-emas-core` | `com.tospery:suite-aliyun-emas-core:2.0.0` | AAR | Optional Alibaba Cloud EMAS adapter. |
 | `:suite:umeng-core` | `com.tospery:suite-umeng-core:2.0.0` | AAR | Optional Umeng runtime. |
 | `:suite:analytics-umeng` | `com.tospery:suite-analytics-umeng:2.0.0` | AAR | Optional Umeng analytics adapter. |
