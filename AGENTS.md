@@ -1,6 +1,6 @@
 # HiAndroid 智能体协作说明
 
-HiAndroid 是与 AtlasHub 业务无关、可独立发布的 Kotlin/Android 效率库。公开接口应保持足够小，具体网络、持久化、导航及 SDK 实现通过单向依赖的适配模块接入。
+HiAndroid（专名“HiAndroid 效率库”，规则与文档叙述使用该专名，仓库名、坐标与代码标识符保持原样）是与 AtlasHub 业务无关、可独立发布的 Kotlin/Android 效率库。公开接口应保持足够小，具体网络、持久化、导航及 SDK 实现通过单向依赖的适配模块接入。
 
 ## 模块归属
 
@@ -16,7 +16,9 @@ HiAndroid 是与 AtlasHub 业务无关、可独立发布的 Kotlin/Android 效�
 ## 发布与验证
 
 - 新纳入通用模块的主流第三方库在实施时核对最新稳定版并精确锁定，不使用动态版本；厂商 SDK 按其独立接入约束核验。遇到 Kotlin、AGP、`minSdk` 或消费者不兼容时先解决冲突，不静默降级。
-- 已发布版本不可覆盖。破坏公开 API 或坐标时升级主版本，写明消费者迁移方式。
+- 已发布版本号不可覆盖，改动发布新版本号。
+- 本库目前只由维护者本人直接使用，不保留版本兼容：公开 API、坐标与行为可直接做破坏性调整，不留废弃别名、兼容分支或迁移层，也不要求升主版本或撰写迁移说明；消费项目同批更新并验证。
+- 日志契约只提供与渠道、环境无关的机制。是否接收凭据与原始正文由宿主通过 `LogProvider.supportsSensitiveData` 等参数显式声明并自负其责，默认不接收；本库不内置渠道、环境或加密策略。
 - 修改模块或依赖后运行 `./gradlew check`、`./gradlew publishToMavenLocal` 和 `python3 scripts/verify_maven_local.py`，并从独立 Gradle 消费工程核对 POM、Module Metadata 与传递依赖。
 - `:hiandroid` 是可选入口，多模块消费项目仍按各自编译边界选择最小子库。厂商 SDK 由宿主在隐私授权后显式初始化。
 
