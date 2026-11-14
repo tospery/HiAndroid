@@ -1,5 +1,10 @@
 package com.tospery.suite.ui
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.EnterTransition
+import androidx.compose.animation.core.MutableTransitionState
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Box
@@ -11,9 +16,11 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.shadow
@@ -26,6 +33,7 @@ import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.IntRect
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
+import kotlinx.coroutines.delay
 import kotlin.math.max
 import kotlin.math.min
 
@@ -35,6 +43,12 @@ private val SuiteTooltipCornerRadius = 14.dp
 private val SuiteTooltipCaretWidth = 16.dp
 private val SuiteTooltipCaretHeight = 8.dp
 
+/** 气泡默认显示时长，之后渐隐消失。 */
+const val SUITE_TOOLTIP_AUTO_DISMISS_MILLIS = 5_000L
+
+/** 气泡自动消失时的渐隐时长。 */
+const val SUITE_TOOLTIP_FADE_OUT_MILLIS = 300
+
 /**
  * 在本地布局坐标中的锚点附近展示的通用提示气泡。
  *
@@ -43,6 +57,9 @@ private val SuiteTooltipCaretHeight = 8.dp
  * 和文案，组件不包含业务语义。[caretTipOffset] 可使尖端在锚点内水平偏移，用于贴边目标
  * 的短斜箭头效果；正值向右，负值向左。[caretCornerInset] 可缩短贴边箭头的斜边；未传入时
  * 仍完整避开气泡圆角。
+ *
+ * 气泡显示 [autoDismissMillis] 毫秒后用 [SUITE_TOOLTIP_FADE_OUT_MILLIS] 毫秒渐隐，渐隐结束时调用
+ * [onDismissRequest]；锚点变化（例如点了另一个目标）时重新计时。传 `null` 时不自动消失。
  */
 @Composable
 fun SuiteAnchoredTooltip(
@@ -51,9 +68,22 @@ fun SuiteAnchoredTooltip(
     modifier: Modifier = Modifier,
     caretTipOffset: Dp = 0.dp,
     caretCornerInset: Dp? = null,
+    autoDismissMillis: Long? = SUITE_TOOLTIP_AUTO_DISMISS_MILLIS,
     content: @Composable () -> Unit,
 ) {
     val anchor = anchorBounds ?: return
+    val currentOnDismissRequest by rememberUpdatedState(onDismissRequest)
+    val visibility = remember(anchor) { MutableTransitionState(true) }
+    LaunchedEffect(anchor, autoDismissMillis) {
+        val millis = autoDismissMillis ?: return@LaunchedEffect
+        delay(millis)
+        visibility.targetState = false
+    }
+    LaunchedEffect(visibility.isIdle, visibility.currentState) {
+        if (visibility.isIdle && !visibility.currentState) {
+            currentOnDismissRequest()
+        }
+    }
     val tooltipColor = MaterialTheme.colorScheme.inverseSurface
     val tooltipContentColor = MaterialTheme.colorScheme.inverseOnSurface
 
@@ -128,42 +158,79 @@ fun SuiteAnchoredTooltip(
                             }
                         },
             )
-            Surface(
-                color = tooltipColor,
-                contentColor = tooltipContentColor,
-                shape = androidx.compose.foundation.shape.RoundedCornerShape(SuiteTooltipCornerRadius),
-                modifier =
-                    Modifier
-                        .offset { IntOffset(tooltipLeft, tooltipTop) }
-                        .onSizeChanged { tooltipSize = it }
-                        .shadow(6.dp, androidx.compose.foundation.shape.RoundedCornerShape(SuiteTooltipCornerRadius)),
+            AnimatedVisibility(
+                visibleState = visibility,
+                enter = EnterTransition.None,
+                exit = fadeOut(tween(SUITE_TOOLTIP_FADE_OUT_MILLIS)),
             ) {
-                Box(modifier = Modifier.padding(SuiteTooltipContentPadding)) {
-                    content()
-                }
+                SuiteTooltipBubble(
+                    tooltipColor = tooltipColor,
+                    tooltipContentColor = tooltipContentColor,
+                    tooltipOffset = IntOffset(tooltipLeft, tooltipTop),
+                    onTooltipSizeChanged = { tooltipSize = it },
+                    caretOffset = IntOffset(caretCanvasLeft, caretTop),
+                    caretCanvasWidth = with(density) { caretCanvasWidth.toDp() },
+                    caretPointsDown = canShowAbove,
+                    caretBaseStart = caretBaseStart.toFloat(),
+                    caretBaseEnd = caretBaseEnd.toFloat(),
+                    caretTipX = caretTipX.toFloat(),
+                    content = content,
+                )
             }
-            Canvas(
-                modifier =
-                    Modifier
-                        .offset { IntOffset(caretCanvasLeft, caretTop) }
-                        .size(
-                            width = with(density) { caretCanvasWidth.toDp() },
-                            height = SuiteTooltipCaretHeight,
-                        ),
-            ) {
-                val path = Path()
-                if (canShowAbove) {
-                    path.moveTo(caretBaseStart.toFloat(), 0f)
-                    path.lineTo(caretBaseEnd.toFloat(), 0f)
-                    path.lineTo(caretTipX.toFloat(), size.height)
-                } else {
-                    path.moveTo(caretBaseStart.toFloat(), size.height)
-                    path.lineTo(caretBaseEnd.toFloat(), size.height)
-                    path.lineTo(caretTipX.toFloat(), 0f)
-                }
-                path.close()
-                drawPath(path = path, color = tooltipColor, style = Fill)
+        }
+    }
+}
+
+@Composable
+private fun SuiteTooltipBubble(
+    tooltipColor: androidx.compose.ui.graphics.Color,
+    tooltipContentColor: androidx.compose.ui.graphics.Color,
+    tooltipOffset: IntOffset,
+    onTooltipSizeChanged: (IntSize) -> Unit,
+    caretOffset: IntOffset,
+    caretCanvasWidth: Dp,
+    caretPointsDown: Boolean,
+    caretBaseStart: Float,
+    caretBaseEnd: Float,
+    caretTipX: Float,
+    content: @Composable () -> Unit,
+) {
+    Box(modifier = Modifier.fillMaxSize()) {
+        Surface(
+            color = tooltipColor,
+            contentColor = tooltipContentColor,
+            shape = androidx.compose.foundation.shape.RoundedCornerShape(SuiteTooltipCornerRadius),
+            modifier =
+                Modifier
+                    .offset { tooltipOffset }
+                    .onSizeChanged(onTooltipSizeChanged)
+                    .shadow(6.dp, androidx.compose.foundation.shape.RoundedCornerShape(SuiteTooltipCornerRadius)),
+        ) {
+            Box(modifier = Modifier.padding(SuiteTooltipContentPadding)) {
+                content()
             }
+        }
+        Canvas(
+            modifier =
+                Modifier
+                    .offset { caretOffset }
+                    .size(
+                        width = caretCanvasWidth,
+                        height = SuiteTooltipCaretHeight,
+                    ),
+        ) {
+            val path = Path()
+            if (caretPointsDown) {
+                path.moveTo(caretBaseStart, 0f)
+                path.lineTo(caretBaseEnd, 0f)
+                path.lineTo(caretTipX, size.height)
+            } else {
+                path.moveTo(caretBaseStart, size.height)
+                path.lineTo(caretBaseEnd, size.height)
+                path.lineTo(caretTipX, 0f)
+            }
+            path.close()
+            drawPath(path = path, color = tooltipColor, style = Fill)
         }
     }
 }
